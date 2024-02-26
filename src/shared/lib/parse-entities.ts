@@ -1,0 +1,3 @@
+const parseEntities = () => {};
+
+export { parseEntities };
