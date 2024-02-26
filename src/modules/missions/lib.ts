@@ -50,4 +50,30 @@ const getGroupsFromEntity = (entities: Entities) => {
   return groups;
 };
 
-export { getGroupsFromEntity, getUnitFromGroupEntity };
+const getDiaryContent = (diaryContent: string) => {
+  const diaryRecords = diaryContent.match(
+    /player createDiaryRecord \["diary", \[([^\]]*)\]\];/g,
+  );
+
+  if (!diaryRecords) {
+    console.error('No diary records found');
+    return;
+  }
+
+  const parsedRecords = diaryRecords.map((record) => {
+    const match = record.match(
+      /player createDiaryRecord \["diary", \[([^\]]*)\]\];/,
+    );
+
+    if (match && match[1]) {
+      const diaryEntry = match[1].split(',').map((item) => item.trim());
+      return diaryEntry;
+    }
+
+    return null;
+  });
+
+  return parsedRecords;
+};
+
+export { getGroupsFromEntity, getUnitFromGroupEntity, getDiaryContent };
