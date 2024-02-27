@@ -5,7 +5,11 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import * as fs from 'fs';
 
 import { Entities } from 'src/shared/types/sqm';
-import { getDiaryContent, getGroupsFromEntity } from './lib';
+import {
+  getDiaryContent,
+  getGroupsFromEntity,
+  getMarkersFromEntity,
+} from './lib';
 import { generateRandomString } from 'src/shared/utils/string';
 
 @Injectable()
@@ -44,6 +48,7 @@ export class MissionService {
       }
 
       const groups = getGroupsFromEntity(entities);
+      const markers = getMarkersFromEntity(entities);
 
       return {
         fileName: data.sourceName,
@@ -66,8 +71,9 @@ export class MissionService {
             // fog?
           },
         },
+        markers,
         groups,
-        vehicles: entities.Vehicles,
+        vehicles: [],
         fullObject: data,
       };
     } catch (error) {

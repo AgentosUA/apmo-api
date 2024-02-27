@@ -5,6 +5,7 @@ type DataType =
   | 'Object'
   | 'Side'
   | 'Group'
+  | 'Marker'
   | 'String'
   | 'Code'
   | 'Config'
@@ -55,7 +56,14 @@ type EntityItem = {
     Inventory?: object;
   };
   id: number;
-  type: 'wog_usmc_wd_Plco';
+  type: string;
+  angle?: number;
+  fillName?: string;
+  colorName?: string;
+  a?: number;
+  b?: number;
+  position?: number[];
+  markerType?: string;
   atlOffset: 0.00072097778;
   CustomAttributes: {
     Attribute0: {

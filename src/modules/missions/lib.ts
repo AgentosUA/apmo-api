@@ -15,7 +15,7 @@ const getUnitFromGroupEntity = (entities: Entities) => {
       type: entities[key].type,
       description: entities[key].Attributes.description,
       isPlayable: Boolean(entities[key].Attributes.isPlayable),
-      inventory: entities[key].Attributes.Inventory,
+      inventory: entities[key].Attributes.Inventory ?? null,
       position: {
         coordinates: {
           x: entities[key].PositionInfo.position[0],
@@ -44,10 +44,44 @@ const getGroupsFromEntity = (entities: Entities) => {
           side: entities[key].side,
           units: getUnitFromGroupEntity(entities[key].Entities),
         });
+        break;
+      default:
+        break;
     }
   });
 
   return groups;
+};
+
+const getMarkersFromEntity = (entities: Entities) => {
+  const entitiesKeys = Object.keys(entities);
+  const markers = [];
+
+  entitiesKeys.forEach((key, index) => {
+    if (!index) return;
+
+    switch (entities[key].dataType) {
+      case 'Marker':
+        markers.push({
+          id: entities[key]?.id,
+          markerType: entities[key]?.markerType,
+          type: entities[key]?.type,
+          colorName: entities[key]?.colorName,
+          fillName: entities[key]?.fillName,
+          width: entities[key]?.a,
+          height: entities[key]?.b,
+          position: {
+            angle: entities[key]?.angle ?? 0,
+            coordinates: entities[key]?.position ?? [0, 0, 0],
+          },
+        });
+        break;
+      default:
+        break;
+    }
+  });
+
+  return markers;
 };
 
 const getDiaryContent = (diaryContent: string) => {
@@ -76,4 +110,9 @@ const getDiaryContent = (diaryContent: string) => {
   return parsedRecords;
 };
 
-export { getGroupsFromEntity, getUnitFromGroupEntity, getDiaryContent };
+export {
+  getMarkersFromEntity,
+  getGroupsFromEntity,
+  getUnitFromGroupEntity,
+  getDiaryContent,
+};
