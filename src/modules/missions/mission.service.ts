@@ -47,7 +47,7 @@ export class MissionService {
 
       return {
         fileName: data.sourceName,
-        missionNamme: intel.briefingName,
+        missionName: intel.briefingName,
         author: data.ScenarioData.author,
         preview: {
           text: data.ScenarioData.overviewText,
