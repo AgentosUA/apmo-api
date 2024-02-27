@@ -1,3 +1,0 @@
-const parseEntities = () => {};
-
-export { parseEntities };

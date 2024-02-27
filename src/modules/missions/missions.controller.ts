@@ -1,4 +1,11 @@
-import { Controller, Get } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
+
+import { FileInterceptor } from '@nestjs/platform-express';
 
 import { MissionService } from './mission.service';
 
@@ -6,8 +13,9 @@ import { MissionService } from './mission.service';
 export class MissionController {
   constructor(private readonly missionService: MissionService) {}
 
-  @Get()
-  parseMission() {
-    return this.missionService.parseMission();
+  @Post('/parse')
+  @UseInterceptors(FileInterceptor('file'))
+  upload(@UploadedFile() file: Express.Multer.File) {
+    return this.missionService.parseMission(file);
   }
 }

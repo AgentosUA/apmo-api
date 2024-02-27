@@ -1,58 +1,82 @@
-import { Injectable } from '@nestjs/common';
+import { execSync } from 'child_process';
+
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
 import * as fs from 'fs';
 
-import { parse as parseSQMtoJSON } from 'arma-class-parser';
 import { Entities } from 'src/shared/types/sqm';
 import { getDiaryContent, getGroupsFromEntity } from './lib';
+import { generateRandomString } from 'src/shared/utils/string';
 
 @Injectable()
 export class MissionService {
-  async parseMission() {
-    // `${__dirname}/../public/missions/wog_160_target_spotted_1.chernarus.pbo`,
-    // TODO: run terminal command to convert pbo to mission folder
-    const sqmFilePath = 'public/mission.sqm';
-    const briefingPath = 'public/briefing.sqf';
+  async parseMission(file: Express.Multer.File) {
+    const fileId = generateRandomString();
 
-    const missionFile = fs.readFileSync(sqmFilePath, 'utf-8');
+    try {
+      fs.writeFileSync(`public/missions/${fileId}.pbo`, file.buffer);
 
-    const data = await parseSQMtoJSON(missionFile);
+      execSync(`cd public/missions && extractpbo ${fileId}.pbo`);
 
-    const intel = data.Mission.Intel;
-    const entities = data.Mission.Entities as Entities;
-    let diary = [];
+      if (!fs.existsSync(`public/missions/${fileId}/mission.sqm`)) {
+        console.log('ERROR HERE');
+      }
 
-    if (fs.existsSync(briefingPath)) {
-      const briefingFile = fs.readFileSync(briefingPath, 'utf-8');
-      diary = getDiaryContent(briefingFile);
-    }
+      execSync(
+        `cp public/parse2json public/missions/${fileId} && cd public/missions/${fileId} && ./parse2json mission.sqm mission.json`,
+      );
 
-    const groups = getGroupsFromEntity(entities);
+      const missionPath = `public/missions/${fileId}/mission.json`;
+      const briefingPath = `public/missions/${fileId}/briefing.sqm`;
 
-    return {
-      fileName: data.sourceName,
-      missionNamme: intel.briefingName,
-      author: data.ScenarioData.author,
-      preview: {
-        text: data.ScenarioData.overviewText,
-        image: data.ScenarioData.overViewPicture,
-      },
-      dlcs: data.dlcs,
-      briefing: {
-        diary,
-        intel: {
-          overviewText: intel.overviewText,
-          year: intel.year,
-          month: intel.month,
-          day: intel.day,
-          hour: intel.hour,
-          minute: intel.minute,
-          // fog?
+      const data = JSON.parse(fs.readFileSync(missionPath, 'utf-8'));
+
+      const intel = data.Mission.Intel;
+      const entities = data.Mission.Entities as Entities;
+      let diary = [];
+
+      if (fs.existsSync(briefingPath)) {
+        const briefingFile = fs.readFileSync(briefingPath, 'utf-8');
+        diary = getDiaryContent(briefingFile);
+      }
+
+      const groups = getGroupsFromEntity(entities);
+
+      return {
+        fileName: data.sourceName,
+        missionNamme: intel.briefingName,
+        author: data.ScenarioData.author,
+        preview: {
+          text: data.ScenarioData.overviewText,
+          image: data.ScenarioData.overViewPicture,
         },
-      },
-      groups,
-      vehicles: entities.Vehicles,
-      fullObject: data,
-    };
+        dlcs: data.dlcs,
+        briefing: {
+          diary,
+          intel: {
+            overviewText: intel.overviewText,
+            year: intel.year,
+            month: intel.month,
+            day: intel.day,
+            hour: intel.hour,
+            minute: intel.minute,
+            // fog?
+          },
+        },
+        groups,
+        vehicles: entities.Vehicles,
+        fullObject: data,
+      };
+    } catch (error) {
+      console.log(error);
+
+      throw new HttpException(
+        'Failed to upload mission',
+        HttpStatus.I_AM_A_TEAPOT,
+      );
+    } finally {
+      fs.rmSync(`public/missions/${fileId}.pbo`);
+      fs.rmSync(`public/missions/${fileId}`, { recursive: true });
+    }
   }
 }
