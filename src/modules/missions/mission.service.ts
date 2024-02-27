@@ -37,7 +37,7 @@ export class MissionService {
         text: data.ScenarioData.overviewText,
         image: data.ScenarioData.overViewPicture,
       },
-
+      dlcs: data.dlcs,
       briefing: {
         diary,
         intel: {
@@ -51,6 +51,7 @@ export class MissionService {
         },
       },
       groups,
+      vehicles: entities.Vehicles,
       fullObject: data,
     };
   }
