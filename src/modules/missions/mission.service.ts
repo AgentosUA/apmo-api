@@ -19,7 +19,10 @@ export class MissionService {
       execSync(`cd public/missions && extractpbo ${fileId}.pbo`);
 
       if (!fs.existsSync(`public/missions/${fileId}/mission.sqm`)) {
-        console.log('ERROR HERE');
+        throw new HttpException(
+          'Failed to upload mission',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
 
       execSync(
@@ -72,7 +75,7 @@ export class MissionService {
 
       throw new HttpException(
         'Failed to upload mission',
-        HttpStatus.I_AM_A_TEAPOT,
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     } finally {
       fs.rmSync(`public/missions/${fileId}.pbo`);
