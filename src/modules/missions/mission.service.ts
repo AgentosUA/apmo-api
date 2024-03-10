@@ -10,7 +10,11 @@ import {
   getGroupsFromEntity,
   getMarkersFromEntity,
 } from './lib';
-import { generateRandomString } from 'src/shared/utils/string';
+import {
+  generateRandomString,
+  removeExtraSlashes,
+} from 'src/shared/utils/string';
+import { fileToBase64 } from 'src/shared/utils/file';
 
 @Injectable()
 export class MissionService {
@@ -41,6 +45,22 @@ export class MissionService {
       const intel = data.Mission.Intel;
       const entities = data.Mission.Entities as Entities;
       let diary = [];
+      let previewImage = '';
+
+      if (
+        data.ScenarioData.overViewPicture &&
+        fs.existsSync(
+          removeExtraSlashes(
+            `public/missions/${fileId}/${data.ScenarioData.overViewPicture}`,
+          ),
+        )
+      ) {
+        previewImage = fileToBase64(
+          removeExtraSlashes(
+            `public/missions/${fileId}/${data.ScenarioData.overViewPicture}`,
+          ),
+        );
+      }
 
       if (fs.existsSync(briefingPath)) {
         const briefingFile = fs.readFileSync(briefingPath, 'utf-8');
@@ -56,7 +76,7 @@ export class MissionService {
         author: data.ScenarioData.author,
         preview: {
           text: data.ScenarioData.overviewText,
-          image: data.ScenarioData.overViewPicture,
+          image: previewImage,
         },
         dlcs: data.dlcs,
         briefing: {
