@@ -1,5 +1,10 @@
 import { Entities } from 'src/shared/types/sqm';
 
+enum PlanPrivacyEnum {
+  public = 'public',
+  private = 'private',
+}
+
 const getUnitFromGroupEntity = (entities: Entities) => {
   const unitsKeys = Object.keys(entities);
   const units = [];
@@ -115,4 +120,5 @@ export {
   getGroupsFromEntity,
   getUnitFromGroupEntity,
   getDiaryContent,
+  PlanPrivacyEnum,
 };
