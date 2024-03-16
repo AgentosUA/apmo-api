@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Post,
   UploadedFile,
@@ -16,6 +17,8 @@ export class MissionController {
   @Post('/parse')
   @UseInterceptors(FileInterceptor('file'))
   upload(@UploadedFile() file: Express.Multer.File) {
+    if (!file) throw new BadRequestException('No file uploaded');
+
     return this.missionService.parseMission(file);
   }
 }

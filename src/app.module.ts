@@ -5,6 +5,7 @@ import { join } from 'path';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { MissionModule } from './modules/missions/missions.module';
+import { PlanModule } from './modules/plans/plan.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { MissionModule } from './modules/missions/missions.module';
       rootPath: join(__dirname, '..', 'public'),
       serveRoot: '/static',
     }),
+    PlanModule,
     MissionModule,
   ],
   controllers: [AppController],
