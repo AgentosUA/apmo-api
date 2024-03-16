@@ -1,6 +1,4 @@
-import { Controller, Post, UseInterceptors } from '@nestjs/common';
-
-import { FileInterceptor } from '@nestjs/platform-express';
+import { Controller, Post } from '@nestjs/common';
 
 import { PlanService } from './plan.service';
 
@@ -9,7 +7,6 @@ export class PlanController {
   constructor(private readonly planService: PlanService) {}
 
   @Post('/create')
-  @UseInterceptors(FileInterceptor('file'))
   create() {
     return this.planService.createPlan();
   }

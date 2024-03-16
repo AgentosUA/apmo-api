@@ -19,6 +19,9 @@ export class MissionController {
   upload(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('No file uploaded');
 
+    if (!file.originalname.endsWith('.pbo'))
+      throw new BadRequestException('Only .pbo files are allowed');
+
     return this.missionService.parseMission(file);
   }
 }

@@ -1,6 +1,11 @@
 import { execSync } from 'child_process';
 
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+} from '@nestjs/common';
 
 import * as fs from 'fs';
 
@@ -38,7 +43,7 @@ export class MissionService {
       );
 
       const missionPath = `public/missions/${fileId}/mission.json`;
-      const briefingPath = `public/missions/${fileId}/briefing.sqm`;
+      const briefingPath = `public/missions/${fileId}/briefing.sqf`;
 
       const data = JSON.parse(fs.readFileSync(missionPath, 'utf-8'));
 
@@ -64,16 +69,23 @@ export class MissionService {
 
       if (fs.existsSync(briefingPath)) {
         const briefingFile = fs.readFileSync(briefingPath, 'utf-8');
+
         diary = getDiaryContent(briefingFile);
       }
 
       const groups = getGroupsFromEntity(entities);
       const markers = getMarkersFromEntity(entities);
 
+      const island = file?.originalname?.split?.('.pbo')?.[0]?.split('.')?.[1];
+
+      if (!island)
+        throw new BadRequestException('Island not found in file name');
+
       return {
         fileName: data.sourceName,
         missionName: intel.briefingName,
         author: data.ScenarioData.author,
+        island,
         preview: {
           text: data.ScenarioData.overviewText,
           image: previewImage,

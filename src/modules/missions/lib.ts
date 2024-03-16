@@ -35,18 +35,14 @@ const getGroupsFromEntity = (entities: Entities) => {
   const groups = [];
 
   entitiesKeys.forEach((key, index) => {
-    if (!index) return;
+    if (!index || !entities[key].dataType) return;
 
-    switch (entities[key].dataType) {
-      case 'Group':
-        groups.push({
-          id: entities[key].id,
-          side: entities[key].side,
-          units: getUnitFromGroupEntity(entities[key].Entities),
-        });
-        break;
-      default:
-        break;
+    if (entities[key].dataType === 'Group') {
+      groups.push({
+        id: entities[key].id,
+        side: entities[key].side,
+        units: getUnitFromGroupEntity(entities[key].Entities),
+      });
     }
   });
 
@@ -85,29 +81,21 @@ const getMarkersFromEntity = (entities: Entities) => {
 };
 
 const getDiaryContent = (diaryContent: string) => {
-  const diaryRecords = diaryContent.match(
-    /player createDiaryRecord \["diary", \[([^\]]*)\]\];/g,
-  );
+  const diary: { name: string; value: string }[] = [];
 
-  if (!diaryRecords) {
-    console.error('No diary records found');
-    return;
+  const regex =
+    /player createDiaryRecord\s*\["diary",\s*\["([^"]+)",\s*"([^"]+)"\]\];/g;
+
+  let match: null | string[];
+
+  while ((match = regex.exec(diaryContent)) !== null) {
+    const name = match[1];
+    const value = match[2];
+
+    diary.push({ name, value });
   }
 
-  const parsedRecords = diaryRecords.map((record) => {
-    const match = record.match(
-      /player createDiaryRecord \["diary", \[([^\]]*)\]\];/,
-    );
-
-    if (match && match[1]) {
-      const diaryEntry = match[1].split(',').map((item) => item.trim());
-      return diaryEntry;
-    }
-
-    return null;
-  });
-
-  return parsedRecords;
+  return diary;
 };
 
 export {
