@@ -120,8 +120,10 @@ export class MissionService {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     } finally {
-      fs.rmSync(`public/missions/${fileId}.pbo`);
-      fs.rmSync(`public/missions/${fileId}`, { recursive: true });
+      setTimeout(() => {
+        fs.rmSync(`public/missions/${fileId}.pbo`);
+        fs.rmSync(`public/missions/${fileId}`, { recursive: true });
+      }, 10000);
     }
   }
 }
