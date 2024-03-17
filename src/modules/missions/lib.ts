@@ -1,4 +1,5 @@
 import { Entities } from 'src/shared/types/sqm';
+import { generateRandomString } from 'src/shared/utils/string';
 
 const getUnitFromGroupEntity = (entities: Entities) => {
   const unitsKeys = Object.keys(entities);
@@ -81,7 +82,7 @@ const getMarkersFromEntity = (entities: Entities) => {
 };
 
 const getDiaryContent = (diaryContent: string) => {
-  const diary: { name: string; value: string }[] = [];
+  const diary: { id: string; name: string; value: string }[] = [];
 
   const regex =
     /player createDiaryRecord\s*\["diary",\s*\["([^"]+)",\s*"([^"]+)"\]\];/g;
@@ -92,7 +93,7 @@ const getDiaryContent = (diaryContent: string) => {
     const name = match[1];
     const value = match[2];
 
-    diary.push({ name, value });
+    diary.push({ id: generateRandomString(), name, value });
   }
 
   return diary;
