@@ -25,6 +25,7 @@ import { fileToBase64 } from 'src/shared/utils/file';
 export class MissionService {
   async parseMission(file: Express.Multer.File) {
     const fileId = generateRandomString();
+    let island = '';
 
     try {
       fs.writeFileSync(`public/missions/${fileId}.pbo`, file.buffer);
@@ -76,10 +77,9 @@ export class MissionService {
       const groups = getGroupsFromEntity(entities);
       const markers = getMarkersFromEntity(entities);
 
-      const island = file?.originalname?.split?.('.pbo')?.[0]?.split('.')?.[1];
+      island = file?.originalname?.split?.('.pbo')?.[0]?.split('.')?.[1];
 
-      if (!island)
-        throw new BadRequestException('Island not found in file name');
+      if (!island) throw new BadRequestException();
 
       return {
         fileName: data.sourceName,
@@ -110,6 +110,10 @@ export class MissionService {
       };
     } catch (error) {
       console.log(error);
+
+      if (!island) {
+        throw new BadRequestException('Island not found in file name');
+      }
 
       throw new HttpException(
         'Failed to upload mission',
