@@ -20,8 +20,8 @@ const getUnitFromGroupEntity = (entities: Entities) => {
       position: {
         coordinates: {
           x: entities[key].PositionInfo.position[0],
-          y: entities[key].PositionInfo.position[1],
-          z: entities[key].PositionInfo.position[2],
+          z: entities[key].PositionInfo.position[1],
+          y: entities[key].PositionInfo.position[2],
         },
         angles: entities[key].PositionInfo.angles,
       },
