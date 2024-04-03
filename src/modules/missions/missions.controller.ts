@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Controller,
   Post,
+  Query,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -16,12 +17,16 @@ export class MissionController {
 
   @Post('/parse')
   @UseInterceptors(FileInterceptor('file'))
-  upload(@UploadedFile() file: Express.Multer.File) {
-    if (!file) throw new BadRequestException('No file uploaded');
+  upload(
+    @UploadedFile() file: Express.Multer.File,
+    @Query('isTesting') isTesting: string,
+  ) {
+    if (!isTesting && !file) throw new BadRequestException('No file uploaded');
 
-    if (!file.originalname.endsWith('.pbo'))
+    if (!isTesting && !file?.originalname?.endsWith('.pbo')) {
       throw new BadRequestException('Only .pbo files are allowed');
+    }
 
-    return this.missionService.parseMission(file);
+    return this.missionService.parseMission(file, Boolean(isTesting));
   }
 }

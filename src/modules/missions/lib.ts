@@ -1,7 +1,8 @@
 import { Entities } from 'src/shared/types/sqm';
+import { fileToBase64 } from 'src/shared/utils/file';
 import {
+  extractImagePaths,
   generateRandomString,
-  getImagePathsFromHTML,
 } from 'src/shared/utils/string';
 
 const getUnitFromGroupEntity = (entities: Entities) => {
@@ -84,7 +85,36 @@ const getMarkersFromEntity = (entities: Entities) => {
   return markers;
 };
 
-const getDiaryContent = (diaryContent: string) => {
+const replacePathsWithBase64 = (
+  htmlText: string,
+  imagePaths: string[] = [],
+) => {
+  imagePaths.forEach((path) => {
+    const base64Data = fileToBase64(path);
+
+    if (base64Data) {
+      htmlText = htmlText.replaceAll(path, base64Data);
+    }
+  });
+
+  return htmlText;
+};
+
+const getDiaryContent = (missionPath: string, diaryContent: string) => {
+  diaryContent = diaryContent
+    .replaceAll(/\\/g, '/')
+    .replaceAll('image=', 'src=');
+
+  const imagePaths = extractImagePaths(diaryContent);
+  imagePaths.forEach((path, index) => {
+    const filePath = `${missionPath}/${path}`;
+
+    imagePaths[index] = filePath;
+    diaryContent = diaryContent.replaceAll(path, filePath);
+  });
+
+  diaryContent = replacePathsWithBase64(diaryContent, imagePaths);
+
   const diary: { id: string; name: string; value: string }[] = [];
 
   const regex =
@@ -94,15 +124,7 @@ const getDiaryContent = (diaryContent: string) => {
 
   while ((match = regex.exec(diaryContent)) !== null) {
     const name = match[1];
-    const value = match[2]
-      ?.replaceAll(/\\/g, '/')
-      .replaceAll('image=', 'src=')
-      .replaceAll("'", '"');
-    // .replaceAll('/image="([^"]+)"/', '');
-    // value.replaceAll(/\\\\/g, '/');
-    // value.replaceAll(/\\/g, '/');
-
-    getImagePathsFromHTML(value);
+    const value = match[2];
 
     diary.push({ id: generateRandomString(), name, value });
   }

@@ -13,7 +13,7 @@ const getImagePathsFromHTML = (htmlString: string) => {
   const matches = htmlString.match(pattern);
 
   // If matches are found, return the image path
-  console.log(matches);
+
   if (matches && matches.length > 1) {
     return matches[1];
   } else {
@@ -22,4 +22,20 @@ const getImagePathsFromHTML = (htmlString: string) => {
   }
 };
 
-export { generateRandomString, removeExtraSlashes, getImagePathsFromHTML };
+const extractImagePaths = (htmlText: string): string[] => {
+  const regex = /<img[^>]+src=['"]([^'"]+)['"]/g;
+  const paths = [];
+  let match;
+  while ((match = regex.exec(htmlText)) !== null) {
+    paths.push(match[1]);
+  }
+
+  return paths;
+};
+
+export {
+  generateRandomString,
+  removeExtraSlashes,
+  getImagePathsFromHTML,
+  extractImagePaths,
+};

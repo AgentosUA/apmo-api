@@ -23,30 +23,33 @@ import { fileToBase64 } from 'src/shared/utils/file';
 
 @Injectable()
 export class MissionService {
-  async parseMission(file: Express.Multer.File) {
-    const fileId = generateRandomString();
+  async parseMission(file: Express.Multer.File, isTesting = false) {
+    const fileId = isTesting ? 'playground' : generateRandomString();
     let island = '';
 
     try {
-      fs.writeFileSync(`public/missions/${fileId}.pbo`, file.buffer);
+      if (!isTesting) {
+        fs.writeFileSync(`public/missions/${fileId}.pbo`, file.buffer);
 
-      execSync(`cd public/missions && extractpbo ${fileId}.pbo`);
+        execSync(`cd public/missions && extractpbo ${fileId}.pbo`);
 
-      if (!fs.existsSync(`public/missions/${fileId}/mission.sqm`)) {
-        throw new HttpException(
-          'Failed to upload mission',
-          HttpStatus.INTERNAL_SERVER_ERROR,
+        if (!fs.existsSync(`public/missions/${fileId}/mission.sqm`)) {
+          throw new HttpException(
+            'Failed to upload mission',
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
+        }
+
+        execSync(
+          `cp public/parse2json public/missions/${fileId} && cd public/missions/${fileId} && ./parse2json mission.sqm mission.json`,
         );
       }
 
-      execSync(
-        `cp public/parse2json public/missions/${fileId} && cd public/missions/${fileId} && ./parse2json mission.sqm mission.json`,
-      );
-
-      const missionPath = `public/missions/${fileId}/mission.json`;
+      const missionPath = `public/missions/${fileId}`;
+      const missionJSONPath = `public/missions/${fileId}/mission.json`;
       const briefingPath = `public/missions/${fileId}/briefing.sqf`;
 
-      const data = JSON.parse(fs.readFileSync(missionPath, 'utf-8'));
+      const data = JSON.parse(fs.readFileSync(missionJSONPath, 'utf-8'));
 
       const intel = data.Mission.Intel;
       const entities = data.Mission.Entities as Entities;
@@ -71,13 +74,15 @@ export class MissionService {
       if (fs.existsSync(briefingPath)) {
         const briefingFile = fs.readFileSync(briefingPath, 'utf-8');
 
-        diary = getDiaryContent(briefingFile);
+        diary = getDiaryContent(missionPath, briefingFile);
       }
 
       const groups = getGroupsFromEntity(entities);
       const markers = getMarkersFromEntity(entities);
 
-      island = file?.originalname?.split?.('.pbo')?.[0]?.split('.')?.[1];
+      island = isTesting
+        ? 'Altis'
+        : file?.originalname?.split?.('.pbo')?.[0]?.split('.')?.[1];
 
       if (!island) throw new BadRequestException();
 
@@ -120,10 +125,12 @@ export class MissionService {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     } finally {
-      setTimeout(() => {
-        fs.rmSync(`public/missions/${fileId}.pbo`);
-        fs.rmSync(`public/missions/${fileId}`, { recursive: true });
-      }, 10000);
+      if (!isTesting) {
+        setTimeout(() => {
+          fs.rmSync(`public/missions/${fileId}.pbo`);
+          fs.rmSync(`public/missions/${fileId}`, { recursive: true });
+        }, 10000);
+      }
     }
   }
 }
