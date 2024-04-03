@@ -1,5 +1,8 @@
 import { Entities } from 'src/shared/types/sqm';
-import { generateRandomString } from 'src/shared/utils/string';
+import {
+  generateRandomString,
+  getImagePathsFromHTML,
+} from 'src/shared/utils/string';
 
 const getUnitFromGroupEntity = (entities: Entities) => {
   const unitsKeys = Object.keys(entities);
@@ -91,7 +94,15 @@ const getDiaryContent = (diaryContent: string) => {
 
   while ((match = regex.exec(diaryContent)) !== null) {
     const name = match[1];
-    const value = match[2];
+    const value = match[2]
+      ?.replaceAll(/\\/g, '/')
+      .replaceAll('image=', 'src=')
+      .replaceAll("'", '"');
+    // .replaceAll('/image="([^"]+)"/', '');
+    // value.replaceAll(/\\\\/g, '/');
+    // value.replaceAll(/\\/g, '/');
+
+    getImagePathsFromHTML(value);
 
     diary.push({ id: generateRandomString(), name, value });
   }
