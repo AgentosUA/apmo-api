@@ -14,13 +14,13 @@ import { PlanModule } from './modules/plans/plan.module';
 @Module({
   imports: [
     ConfigModule.forRoot(),
+    MongooseModule.forRoot(process.env.DB_URL),
+    PlanModule,
+    MissionModule,
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'public'),
       serveRoot: '/static',
     }),
-    MongooseModule.forRoot(process.env.DB_URL),
-    PlanModule,
-    MissionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

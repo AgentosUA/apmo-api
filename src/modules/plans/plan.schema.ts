@@ -4,53 +4,167 @@ import { HydratedDocument } from 'mongoose';
 export type PlanDocument = HydratedDocument<Plan>;
 
 @Schema()
-export class Plan {
+class Intel {
+  @Prop()
+  overviewText: string;
+
+  @Prop()
+  year: number;
+
+  @Prop()
+  month: number;
+
+  @Prop()
+  day: number;
+
+  @Prop()
+  hour: number;
+
+  @Prop()
+  minute: number;
+}
+
+@Schema()
+class BriefingIntel {
+  @Prop()
+  intel: Intel;
+}
+
+@Schema()
+class Briefing {
+  @Prop()
+  intel: BriefingIntel;
+  @Prop()
+  diary: string;
+}
+
+@Schema()
+class MissionBriefing {
+  @Prop()
+  briefing: Briefing;
+}
+
+@Schema()
+class Group {
+  @Prop()
+  side: string;
+
+  @Prop()
+  units: Unit[];
+}
+
+@Schema()
+class Coordinates {
+  @Prop()
+  x: number;
+
+  @Prop()
+  y: number;
+
+  @Prop()
+  z: number;
+}
+
+@Schema()
+class Position {
+  @Prop()
+  coordinates: Coordinates;
+  @Prop()
+  angles: [number, number, number];
+}
+
+@Schema()
+class Unit {
+  @Prop()
+  side: string;
+
+  @Prop()
+  rank: string;
+
+  @Prop()
+  type: string;
+
+  @Prop()
+  description: string;
+
+  @Prop()
+  isPlayable: true;
+
+  @Prop({ type: Object, default: null })
+  inventory: null;
+
+  @Prop()
+  position: Position;
+}
+
+@Schema()
+class MissionMarker {
+  @Prop()
+  type: string;
+
+  @Prop()
+  width: number;
+
+  @Prop()
+  height: number;
+
+  @Prop()
+  position: Position;
+}
+
+@Schema()
+class Mission {
+  @Prop()
+  fileName: string;
+
+  @Prop()
+  missionName: string;
+
+  @Prop()
+  island: string;
+
+  @Prop()
+  author: string;
+
+  @Prop()
+  dlcs: string[];
+
+  @Prop()
+  briefing: MissionBriefing;
+
+  @Prop()
+  groups: Group[];
+
+  @Prop()
+  vehicles: Group[];
+
+  @Prop()
+  markers: MissionMarker[];
+}
+
+@Schema()
+class Plan {
   @Prop({ default: 'Untitled' })
   title: string;
 
   @Prop()
   planMarkers: string;
 
-  @Prop()
-  mission: {
-    fileName: string;
-    missionName: string;
-    author: string;
-    dlcs: string[];
-    briefing: {
-      diary: string;
-      intel: {
-        overviewText: string;
-        year: number;
-        month: number;
-        day: number;
-        hour: number;
-        minute: number;
-      };
-    };
-
-    groups: {
-      id: 11081;
-      side: string;
-      units: {
-        id: number;
-        side: string;
-        rank: string;
-        type: string;
-        description: string;
-        isPlayable: true;
-        inventory: null;
-        position: {
-          coordinates: {
-            x: number;
-            y: number;
-            z: number;
-          };
-          angles: [number, number, number];
-        };
-      }[];
-    }[];
-  };
+  @Prop({ default: null })
+  mission: Mission;
 }
+
+export {
+  Plan,
+  Group,
+  Unit,
+  Coordinates,
+  Position,
+  Mission,
+  MissionMarker,
+  Briefing,
+  BriefingIntel,
+  Intel,
+};
 
 export const PlanSchema = SchemaFactory.createForClass(Plan);
