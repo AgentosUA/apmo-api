@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
+import { SetCommonIdType } from 'src/shared/utils/schema';
 
 export type PlanDocument = HydratedDocument<Plan>;
 
@@ -168,3 +169,5 @@ export {
 };
 
 export const PlanSchema = SchemaFactory.createForClass(Plan);
+
+PlanSchema.plugin(SetCommonIdType);
