@@ -6,7 +6,7 @@ const fileToBase64 = (pathToFile: string, type = 'image') => {
   const bitmap = readFileSync(pathToFile);
 
   const imageFormat =
-    pathToFile.endsWith('jpg') || pathToFile.endsWith('jpeg') ? 'jpg' : 'png';
+    pathToFile.endsWith('jpg') || pathToFile.endsWith('jpeg') ? 'jpeg' : 'png';
 
   const mimetype = type === 'image' ? `data:image/${imageFormat};base64` : '';
 
