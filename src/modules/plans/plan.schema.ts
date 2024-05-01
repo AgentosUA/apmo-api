@@ -71,7 +71,7 @@ class Position {
   @Prop()
   coordinates: Coordinates;
   @Prop()
-  angles: [number, number, number];
+  angle: number;
 }
 
 @Schema()

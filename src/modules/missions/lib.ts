@@ -73,7 +73,11 @@ const getMarkersFromEntity = (entities: Entities) => {
           height: entities[key]?.b,
           position: {
             angle: entities[key]?.angle ?? 0,
-            coordinates: entities[key]?.position ?? [0, 0, 0],
+            coordinates: {
+              x: entities[key]?.position?.[0] ?? 0,
+              z: entities[key]?.position?.[1] ?? 0,
+              y: entities[key]?.position?.[2] ?? 0,
+            },
           },
         });
         break;
