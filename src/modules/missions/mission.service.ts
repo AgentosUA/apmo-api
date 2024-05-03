@@ -14,6 +14,7 @@ import {
   getDiaryContent,
   getGroupsFromEntity,
   getMarkersFromEntity,
+  getVehicles,
 } from './lib';
 import {
   generateRandomString,
@@ -79,6 +80,7 @@ export class MissionService {
 
       const groups = getGroupsFromEntity(entities);
       const markers = getMarkersFromEntity(entities);
+      const vehicles = getVehicles(entities);
 
       island = isTesting
         ? 'Altis'
@@ -110,8 +112,8 @@ export class MissionService {
         },
         markers,
         groups,
-        vehicles: [],
-        fullObject: data,
+        vehicles,
+        // fullObject: data,
       };
     } catch (error) {
       console.log(error);

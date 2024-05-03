@@ -55,6 +55,17 @@ class Group {
 }
 
 @Schema()
+class Vehicle {
+  @Prop()
+  side: string;
+
+  @Prop()
+  type: string;
+  description: string;
+  position: Position;
+}
+
+@Schema()
 class Coordinates {
   @Prop()
   x: number;
@@ -137,7 +148,7 @@ class Mission {
   groups: Group[];
 
   @Prop()
-  vehicles: Group[];
+  vehicles: Vehicle[];
 
   @Prop()
   markers: MissionMarker[];

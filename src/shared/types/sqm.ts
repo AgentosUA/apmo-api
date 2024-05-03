@@ -54,6 +54,9 @@ type EntityItem = {
     description: string;
     isPlayable: 1 | 0 | number;
     Inventory?: object;
+    lock?: 'LOCKED' | 'UNLOCKED';
+    pylons?: string;
+    fuel?: number;
   };
   id: number;
   type: string;

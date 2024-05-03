@@ -54,6 +54,45 @@ const getGroupsFromEntity = (entities: Entities) => {
   return groups;
 };
 
+const getVehicleType = (entity: Entities[0]) => {
+  if (entity?.Attributes?.pylons) return 'air';
+  if (
+    entity?.Attributes?.fuel ||
+    entity?.Attributes?.lock ||
+    entity.type.toLowerCase().includes('fuel')
+  )
+    return 'land';
+
+  return 'crate';
+};
+
+const getVehicles = (entities: Entities) => {
+  const entitiesKeys = Object.keys(entities);
+  const vehicles = [];
+
+  entitiesKeys.forEach((key, index) => {
+    if (!index || !entities[key].dataType) return;
+
+    if (entities[key].dataType === 'Object' && entities[key].side === 'Empty') {
+      vehicles.push({
+        id: entities[key].id,
+        type: getVehicleType(entities[key]),
+        description: entities[key].type,
+        position: {
+          coordinates: {
+            x: entities[key].PositionInfo.position[0],
+            z: entities[key].PositionInfo.position[1],
+            y: entities[key].PositionInfo.position[2],
+          },
+          angle: entities[key].PositionInfo.angles[1],
+        },
+      });
+    }
+  });
+
+  return vehicles;
+};
+
 const getMarkersFromEntity = (entities: Entities) => {
   const entitiesKeys = Object.keys(entities);
   const markers = [];
@@ -146,4 +185,5 @@ export {
   getGroupsFromEntity,
   getUnitFromGroupEntity,
   getDiaryContent,
+  getVehicles,
 };
