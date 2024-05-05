@@ -80,7 +80,8 @@ const getVehicles = (entities: Entities) => {
     if (
       !index ||
       !entities[key].dataType ||
-      entities[key]?.CustomAttributes?.Attribute0?.property === 'speaker'
+      entities[key]?.CustomAttributes?.Attribute0?.property === 'speaker' ||
+      entities[key]?.Attributes?.isPlayable
     )
       return;
 
