@@ -3,6 +3,7 @@
 type DataType =
   | 'Number'
   | 'Object'
+  | 'Empty'
   | 'Side'
   | 'Group'
   | 'Marker'
@@ -23,7 +24,8 @@ type DataType =
   | 'Eden Entity'
   | 'NaN'
   | 'HashMap'
-  | 'HashMapKey';
+  | 'HashMapKey'
+  | 'Layer';
 
 type Side =
   | 'West'
@@ -67,20 +69,20 @@ type EntityItem = {
   b?: number;
   position?: number[];
   markerType?: string;
-  atlOffset: 0.00072097778;
-  CustomAttributes: {
+  atlOffset?: 0.00072097778;
+  CustomAttributes?: {
     Attribute0: {
-      property: 'speaker';
-      expression: '_this setspeaker _value;';
+      property: string;
+      expression: string;
       Value: {
         data: {
-          singleType: 'STRING';
-          value: 'Male06ENG';
+          singleType: string;
+          value: string;
         };
       };
     };
     Attribute1: {
-      property: 'pitch';
+      property: string;
       expression: '_this setpitch _value;';
       Value: {
         data: {

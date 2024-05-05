@@ -56,14 +56,20 @@ const getGroupsFromEntity = (entities: Entities) => {
 
 const getVehicleType = (entity: Entities[0]) => {
   if (entity?.Attributes?.pylons) return 'air';
+  if (entity?.type?.toLowerCase().includes('ammo')) return 'crate';
+  if (entity?.type?.toLowerCase().includes('crate')) return 'crate';
+  if (entity?.type?.toLowerCase().includes('static')) return 'static';
+
   if (
     entity?.Attributes?.fuel ||
     entity?.Attributes?.lock ||
-    entity.type.toLowerCase().includes('fuel')
+    entity?.type?.toLowerCase()?.includes('fuel') ||
+    entity?.Attributes?.init?.toLowerCase().includes('veh') ||
+    entity?.CustomAttributes?.Attribute0?.property === 'VehicleCustomization'
   )
     return 'land';
 
-  return 'crate';
+  return 'unknown';
 };
 
 const getVehicles = (entities: Entities) => {
@@ -71,20 +77,29 @@ const getVehicles = (entities: Entities) => {
   const vehicles = [];
 
   entitiesKeys.forEach((key, index) => {
-    if (!index || !entities[key].dataType) return;
+    if (
+      !index ||
+      !entities[key].dataType ||
+      entities[key]?.CustomAttributes?.Attribute0?.property === 'speaker'
+    )
+      return;
 
-    if (entities[key].dataType === 'Object' && entities[key].side === 'Empty') {
+    if (entities[key].Entities) {
+      vehicles.push(...getVehicles(entities[key].Entities));
+    }
+
+    if (entities[key].dataType === 'Object') {
       vehicles.push({
         id: entities[key].id,
         type: getVehicleType(entities[key]),
         description: entities[key].type,
         position: {
           coordinates: {
-            x: entities[key].PositionInfo.position[0],
-            z: entities[key].PositionInfo.position[1],
-            y: entities[key].PositionInfo.position[2],
+            x: entities?.[key]?.PositionInfo?.position?.[0] ?? 0,
+            z: entities?.[key]?.PositionInfo?.position?.[1] ?? 0,
+            y: entities?.[key]?.PositionInfo?.position?.[2] ?? 0,
           },
-          angle: entities[key].PositionInfo.angles[1],
+          angle: entities?.[key]?.PositionInfo?.angles?.[1] ?? 0,
         },
       });
     }
