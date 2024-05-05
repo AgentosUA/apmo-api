@@ -57,7 +57,11 @@ const getGroupsFromEntity = (entities: Entities) => {
 const getVehicleType = (entity: Entities[0]) => {
   if (entity?.Attributes?.pylons) return 'air';
   if (entity?.type?.toLowerCase().includes('ammo')) return 'crate';
-  if (entity?.type?.toLowerCase().includes('crate')) return 'crate';
+  if (
+    entity?.type?.toLowerCase().includes('crate') &&
+    !entity?.type?.toLowerCase().includes('crater')
+  )
+    return 'crate';
   if (entity?.type?.toLowerCase().includes('static')) return 'static';
 
   if (
