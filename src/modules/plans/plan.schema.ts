@@ -26,23 +26,24 @@ class Intel {
 }
 
 @Schema()
-class BriefingIntel {
+class Diary {
   @Prop()
-  intel: Intel;
+  title: string;
+
+  @Prop()
+  name: string;
+
+  @Prop()
+  value: string;
 }
 
-@Schema()
+@Schema({ _id: false })
 class Briefing {
   @Prop()
-  intel: BriefingIntel;
-  @Prop()
-  diary: string;
-}
+  intel: Intel;
 
-@Schema()
-class MissionBriefing {
   @Prop()
-  briefing: Briefing;
+  diary: Diary[];
 }
 
 @Schema()
@@ -142,7 +143,7 @@ class Mission {
   dlcs: string[];
 
   @Prop()
-  briefing: MissionBriefing;
+  briefing: Briefing;
 
   @Prop()
   groups: Group[];
@@ -175,7 +176,6 @@ export {
   Mission,
   MissionMarker,
   Briefing,
-  BriefingIntel,
   Intel,
 };
 
