@@ -1,6 +1,10 @@
-import mongoose, { Model } from 'mongoose';
+import mongoose, { Model, isValidObjectId } from 'mongoose';
 
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 
 import { Plan } from './plan.schema';
@@ -23,54 +27,50 @@ export class PlanService {
   }
 
   async updatePlanById(dto: UpdatePlanDto) {
-    try {
-      const { id, ...updateData } = dto;
+    const { id, ...updateData } = dto;
 
-      const plan = await this.planModel.findByIdAndUpdate(
-        new mongoose.Types.ObjectId(id),
-        updateData,
-        {
-          new: true,
-        },
-      );
-
-      if (!plan) {
-        throw new NotFoundException('Plan not found');
-      }
-
-      return plan;
-    } catch (error) {
-      return error;
+    if (!isValidObjectId(dto.id)) {
+      throw new BadRequestException('id is not valid');
     }
+
+    const plan = await this.planModel.findByIdAndUpdate(
+      new mongoose.Types.ObjectId(id),
+      updateData,
+      {
+        new: true,
+      },
+    );
+
+    if (!plan) {
+      throw new NotFoundException('Plan not found');
+    }
+
+    return plan;
   }
 
   async getPlanById(dto: GetPlanByIdDto) {
-    try {
-      const plan = await this.planModel.findById(
-        new mongoose.Types.ObjectId(dto.id),
-      );
-
-      if (!plan) {
-        throw new NotFoundException('Plan not found');
-      }
-
-      return plan;
-    } catch (error) {
-      return error;
+    if (!isValidObjectId(dto.id)) {
+      throw new NotFoundException('Plan not found');
     }
+
+    const plan = await this.planModel.findById(
+      new mongoose.Types.ObjectId(dto.id),
+    );
+
+    if (!plan) {
+      throw new NotFoundException('Plan not found');
+    }
+
+    return plan;
   }
 
   async deletePlanByIdDto(dto: DeletePlanByIdDto) {
-    try {
-      const plan = await this.planModel.findByIdAndDelete(
-        new mongoose.Types.ObjectId(dto.id),
-      );
+    const plan = await this.planModel.findByIdAndDelete(
+      new mongoose.Types.ObjectId(dto.id),
+    );
 
-      if (!plan) {
-        throw new NotFoundException('Plan not found');
-      }
-    } catch (error) {
-      return error;
+    if (!plan) {
+      throw new NotFoundException('Plan not found');
     }
   }
 }
