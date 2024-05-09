@@ -63,6 +63,7 @@ const getVehicleType = (entity: Entities[0]) => {
   )
     return 'crate';
   if (entity?.type?.toLowerCase().includes('static')) return 'static';
+  if (entity?.type?.toLowerCase().includes('tripod')) return 'static';
 
   if (
     entity?.Attributes?.fuel ||
