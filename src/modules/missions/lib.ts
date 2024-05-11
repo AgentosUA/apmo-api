@@ -173,8 +173,11 @@ const getDiaryContent = (missionPath: string, diaryContent: string) => {
   diaryContent = diaryContent.replaceAll('.PNG', '.png');
   diaryContent = diaryContent.replaceAll('.JPEG', '.jpeg');
   diaryContent = diaryContent.replaceAll('.PAA', '.paa');
+  diaryContent = diaryContent.replaceAll('"Diary"', '"diary"');
+  diaryContent = diaryContent.replaceAll('""', "'");
 
   const imagePaths = extractImagePaths(diaryContent);
+
   imagePaths.forEach((path, index) => {
     const filePath = `${missionPath}/${path}`;
 
