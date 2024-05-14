@@ -186,6 +186,8 @@ const getDiaryContent = (missionPath: string, diaryContent: string) => {
   });
 
   diaryContent = replacePathsWithBase64(diaryContent, imagePaths);
+  diaryContent = diaryContent.replaceAll(`${missionPath}/`, '');
+  diaryContent = diaryContent.replaceAll(missionPath, '');
 
   const diary: { id: string; name: string; value: string }[] = [];
 
