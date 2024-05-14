@@ -88,8 +88,6 @@ export class MissionService {
 
       if (!island) throw new BadRequestException();
 
-      console.log(data.sourceName);
-
       return {
         fileName:
           data.sourceName ??
