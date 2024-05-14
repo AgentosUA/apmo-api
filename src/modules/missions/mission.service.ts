@@ -88,8 +88,12 @@ export class MissionService {
 
       if (!island) throw new BadRequestException();
 
+      console.log(data.sourceName);
+
       return {
-        fileName: data.sourceName,
+        fileName:
+          data.sourceName ??
+          file.originalname.replaceAll('.pbo', '').replaceAll('.PBO', ''),
         missionName: intel.briefingName,
         author: data.ScenarioData.author,
         island,
@@ -97,7 +101,7 @@ export class MissionService {
           text: data.ScenarioData.overviewText,
           image: previewImage,
         },
-        dlcs: data.dlcs,
+        dlcs: data.dlcs ?? data.addons ?? null,
         briefing: {
           diary,
           intel: {
