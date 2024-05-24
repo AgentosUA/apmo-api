@@ -194,7 +194,7 @@ const getDiaryContent = (missionPath: string, diaryContent: string) => {
   const diary: { id: string; name: string; value: string }[] = [];
 
   const regex =
-    /player createDiaryRecord\s*\[\s*"diary"\s*,\s*\[\s*"([^"]+)"(?:\s*,\s*"([\s\S]*?)")*\s*\]\s*\];/g;
+    /player createDiaryRecord\s*\[\s*"diary"\s*,\s*\[\s*"([^"]+)"\s*,\s*"([\s\S]*?)"(?:\s*,\s*"[^"]*")*\s*\]\s*\];/g;
 
   let match: null | string[];
 
