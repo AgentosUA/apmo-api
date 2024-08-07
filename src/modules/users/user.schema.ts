@@ -3,20 +3,19 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
 
 import { SetCommonIdType } from 'src/shared/utils/schema';
-import { Plan } from '../plans/plan.schema';
 
 @Schema()
 class User {
-  @Prop({ required: true })
+  @Prop({ required: true, unique: true })
   email: string;
 
-  @Prop({ required: true })
+  @Prop({ required: true, unique: true })
   username: string;
 
   @Prop({ required: true })
   password: string;
 
-  @Prop()
+  @Prop({ default: null })
   avatar: string;
 
   @Prop()
@@ -31,6 +30,6 @@ class User {
 
 export { User };
 
-export const UserSchema = SchemaFactory.createForClass(Plan);
+export const UserSchema = SchemaFactory.createForClass(User);
 
 UserSchema.plugin(SetCommonIdType);

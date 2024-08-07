@@ -10,13 +10,17 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { MissionModule } from './modules/missions/missions.module';
 import { PlanModule } from './modules/plans/plan.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { UserModule } from './modules/users/user.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot(),
     MongooseModule.forRoot(process.env.DB_URL),
+    AuthModule,
     PlanModule,
     MissionModule,
+    UserModule,
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'public'),
       serveRoot: '/static',
