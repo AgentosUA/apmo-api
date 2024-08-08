@@ -50,8 +50,18 @@ export class AuthService {
       userId: existedUser[0].id,
     });
 
+    const refreshToken = this.jwtService.sign(
+      {
+        userId: existedUser[0].id,
+      },
+      {
+        expiresIn: '7d',
+      },
+    );
+
     return {
       token,
+      refreshToken,
       expiresIn: 40 * 60 * 60,
       expirationDate: new Date(Date.now() + 40 * 60 * 60 * 1000),
     };
@@ -75,5 +85,17 @@ export class AuthService {
     await this.userModel.findByIdAndUpdate(userId, {
       password: hashedPassword,
     });
+  }
+
+  async refreshToken(userId: string) {
+    const token = this.jwtService.sign({
+      userId,
+    });
+
+    return {
+      token,
+      expiresIn: 40 * 60 * 60,
+      expirationDate: new Date(Date.now() + 40 * 60 * 60 * 1000),
+    };
   }
 }

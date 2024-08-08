@@ -27,4 +27,12 @@ export class AuthController {
 
     return this.authService.changePassword(userId, oldPassword, newPassword);
   }
+
+  @Post('/refresh-token')
+  @UseGuards(AuthGuard)
+  async refreshToken(@Req() req) {
+    const userId = req['user'].userId as string;
+
+    return this.authService.refreshToken(userId);
+  }
 }
