@@ -16,12 +16,28 @@ import {
   DeletePlanByIdDto,
 } from './plan.dto';
 
+import { User } from '../users/user.schema';
+
 @Injectable()
 export class PlanService {
-  constructor(@InjectModel(Plan.name) private planModel: Model<Plan>) {}
+  constructor(
+    @InjectModel(Plan.name) private planModel: Model<Plan>,
+    @InjectModel(User.name) private userModel: Model<User>,
+  ) {}
 
   async createPlan(dto: CreatePlanDto) {
     const newPlan = new this.planModel(dto);
+
+    if (dto.userId) {
+      this.userModel.updateOne(
+        { id: new mongoose.Types.ObjectId(dto.userId) },
+        {
+          $push: {
+            plans: newPlan.id,
+          },
+        },
+      );
+    }
 
     return newPlan.save();
   }

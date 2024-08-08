@@ -15,12 +15,14 @@ import { UserModule } from './modules/users/user.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
     MongooseModule.forRoot(process.env.DB_URL),
+    UserModule,
     AuthModule,
     PlanModule,
     MissionModule,
-    UserModule,
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'public'),
       serveRoot: '/static',

@@ -6,12 +6,18 @@ import { PlanService } from './plan.service';
 import { PlanController } from './plan.controller';
 import { Plan, PlanSchema } from './plan.schema';
 
+import { User, UserSchema } from '../users/user.schema';
+
 @Module({
   imports: [
     MongooseModule.forFeature([
       {
         name: Plan.name,
         schema: PlanSchema,
+      },
+      {
+        name: User.name,
+        schema: UserSchema,
       },
     ]),
   ],

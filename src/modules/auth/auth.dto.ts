@@ -11,3 +11,8 @@ export class SignInDto {
   readonly username?: string;
   readonly password: string;
 }
+
+export class ChangePasswordDto {
+  readonly oldPassword: string;
+  readonly newPassword: string;
+}

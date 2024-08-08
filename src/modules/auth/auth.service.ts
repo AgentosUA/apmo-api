@@ -1,4 +1,4 @@
-import { sign } from 'jsonwebtoken';
+import { JwtService } from '@nestjs/jwt';
 
 import { hashSync, compareSync } from 'bcryptjs';
 
@@ -10,7 +10,10 @@ import { Model } from 'mongoose';
 
 @Injectable()
 export class AuthService {
-  constructor(@InjectModel(User.name) private userModel: Model<User>) {}
+  constructor(
+    @InjectModel(User.name) private userModel: Model<User>,
+    private jwtService: JwtService,
+  ) {}
 
   async signUp({ email, username, password }: SignUpDto) {
     const existedUser = await this.userModel.find({
@@ -43,8 +46,8 @@ export class AuthService {
       throw new BadRequestException('Email, username or password is incorrect');
     }
 
-    const token = sign({ id: existedUser[0].id }, process.env.JWT_SECRET, {
-      expiresIn: '40h',
+    const token = this.jwtService.sign({
+      userId: existedUser[0].id,
     });
 
     return {
@@ -52,5 +55,25 @@ export class AuthService {
       expiresIn: 40 * 60 * 60,
       expirationDate: new Date(Date.now() + 40 * 60 * 60 * 1000),
     };
+  }
+
+  async changePassword(
+    userId: string,
+    oldPassword: string,
+    newPassword: string,
+  ) {
+    const user = await this.userModel.findById(userId);
+
+    const passwordMatch = compareSync(oldPassword, user.password);
+
+    if (!passwordMatch) {
+      throw new BadRequestException('Old password is incorrect');
+    }
+
+    const hashedPassword = hashSync(newPassword, 15);
+
+    await this.userModel.findByIdAndUpdate(userId, {
+      password: hashedPassword,
+    });
   }
 }
