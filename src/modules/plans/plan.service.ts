@@ -29,14 +29,16 @@ export class PlanService {
     const newPlan = new this.planModel(dto);
 
     if (dto.userId) {
-      this.userModel.updateOne(
-        { id: new mongoose.Types.ObjectId(dto.userId) },
-        {
-          $push: {
-            plans: newPlan.id,
+      this.userModel
+        .findOneAndUpdate(
+          { _id: dto.userId },
+          {
+            $push: {
+              plans: newPlan.id,
+            },
           },
-        },
-      );
+        )
+        .exec();
     }
 
     return newPlan.save();

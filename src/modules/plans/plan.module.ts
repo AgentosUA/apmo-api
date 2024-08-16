@@ -7,6 +7,7 @@ import { PlanController } from './plan.controller';
 import { Plan, PlanSchema } from './plan.schema';
 
 import { User, UserSchema } from '../users/user.schema';
+import { AuthGuard } from '../auth/auth.guard';
 
 @Module({
   imports: [
@@ -22,6 +23,6 @@ import { User, UserSchema } from '../users/user.schema';
     ]),
   ],
   controllers: [PlanController],
-  providers: [PlanService],
+  providers: [PlanService, AuthGuard],
 })
 export class PlanModule {}

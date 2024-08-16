@@ -6,19 +6,27 @@ import {
   Post,
   Patch,
   Delete,
+  Req,
 } from '@nestjs/common';
 
 import { PlanService } from './plan.service';
 
 import { CreatePlanDto, UpdatePlanDto } from './plan.dto';
+import { AuthGuard } from '../auth/auth.guard';
 
 @Controller('/plans')
 export class PlanController {
-  constructor(private readonly planService: PlanService) {}
+  constructor(
+    private readonly planService: PlanService,
+    private readonly authGuard: AuthGuard,
+  ) {}
 
   @Post('/')
-  async create(@Body() dto: CreatePlanDto) {
-    return this.planService.createPlan(dto);
+  async create(@Req() req, @Body() dto: CreatePlanDto) {
+    const token = this.authGuard.extractTokenFromHeader(req);
+    const user = await this.authGuard.verifyAndGetUser(token);
+
+    return this.planService.createPlan({ ...dto, userId: user?.userId });
   }
 
   @Get(':id')
