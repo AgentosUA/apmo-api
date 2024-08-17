@@ -35,7 +35,7 @@ export class AuthService {
     return newUser.save();
   }
 
-  async signIn({ email, username, password }: SignInDto) {
+  async signIn({ email, username = email, password }: SignInDto) {
     const existedUser = await this.userModel.find({
       $or: [{ email }, { username }],
     });
