@@ -40,9 +40,13 @@ export class AuthService {
       $or: [{ email }, { username }],
     });
 
+    if (!existedUser.length) {
+      throw new BadRequestException('Email, username or password is incorrect');
+    }
+
     const passwordMatch = compareSync(password, existedUser?.[0]?.password);
 
-    if (!existedUser.length || !passwordMatch) {
+    if (!passwordMatch) {
       throw new BadRequestException('Email, username or password is incorrect');
     }
 
