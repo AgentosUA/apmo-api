@@ -4,6 +4,7 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 
@@ -82,7 +83,13 @@ export class PlanService {
     return plan;
   }
 
-  async deletePlanByIdDto(dto: DeletePlanByIdDto) {
+  async deletePlanByIdDto(dto: DeletePlanByIdDto, userId: string) {
+    const user = await this.userModel.findById(userId);
+
+    if (!user || !user.plans.includes(dto.id)) {
+      throw new ForbiddenException('You are not allowed to delete this plan');
+    }
+
     const plan = await this.planModel.findByIdAndDelete(
       new mongoose.Types.ObjectId(dto.id),
     );

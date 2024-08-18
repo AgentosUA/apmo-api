@@ -40,7 +40,10 @@ export class PlanController {
   }
 
   @Delete(':id')
-  async deleteOne(@Param('id') id: string) {
-    return this.planService.deletePlanByIdDto({ id });
+  async deleteOne(@Param('id') id: string, @Req() req) {
+    const user = await this.authGuard.verifyAndGetUser(
+      this.authGuard.extractTokenFromHeader(req),
+    );
+    return this.planService.deletePlanByIdDto({ id }, user?.userId);
   }
 }

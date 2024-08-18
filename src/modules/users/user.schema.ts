@@ -26,7 +26,7 @@ class User {
   squadTag: string;
 
   @Prop({ default: [], type: [Types.ObjectId], ref: 'Plan' })
-  plans: Plan[];
+  plans: string[];
 }
 
 export { User };
