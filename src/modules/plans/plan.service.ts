@@ -45,11 +45,19 @@ export class PlanService {
     return newPlan.save();
   }
 
-  async updatePlanById(dto: UpdatePlanDto) {
+  async updatePlanById(dto: UpdatePlanDto, userId?: string) {
     const { id, ...updateData } = dto;
 
     if (!isValidObjectId(dto.id)) {
       throw new BadRequestException('id is not valid');
+    }
+
+    if (userId) {
+      const user = await this.userModel.findById(userId);
+
+      if (!user || !user.plans.includes(id)) {
+        throw new ForbiddenException('You are not allowed to update this plan');
+      }
     }
 
     const plan = await this.planModel.findByIdAndUpdate(

@@ -35,8 +35,15 @@ export class PlanController {
   }
 
   @Patch(':id')
-  async updateOne(@Param('id') id: string, @Body() dto: UpdatePlanDto) {
-    return this.planService.getPlanById({ id, ...dto });
+  async updateOne(
+    @Req() req,
+    @Param('id') id: string,
+    @Body() dto: UpdatePlanDto,
+  ) {
+    const token = this.authGuard.extractTokenFromHeader(req);
+    const user = await this.authGuard.verifyAndGetUser(token);
+
+    return this.planService.updatePlanById({ id, ...dto }, user?.userIdF);
   }
 
   @Delete(':id')
