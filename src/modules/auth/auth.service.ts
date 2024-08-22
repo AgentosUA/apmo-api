@@ -96,8 +96,18 @@ export class AuthService {
       userId,
     });
 
+    const refreshToken = this.jwtService.sign(
+      {
+        userId,
+      },
+      {
+        expiresIn: '7d',
+      },
+    );
+
     return {
       token,
+      refreshToken,
       expiresIn: 40 * 60 * 60,
       expirationDate: new Date(Date.now() + 40 * 60 * 60 * 1000),
     };

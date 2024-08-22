@@ -3,7 +3,6 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
 
 import { SetCommonIdType } from 'src/shared/utils/schema';
-import { Plan } from '../plans/plan.schema';
 
 @Schema()
 class User {
