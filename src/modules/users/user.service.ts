@@ -11,4 +11,14 @@ export class UserService {
       .populate('plans')
       .select('-password -__v');
   }
+
+  async changeAvatar(userId: string, avatar: string) {
+    return this.userModel
+      .findByIdAndUpdate(
+        new mongoose.Types.ObjectId(userId),
+        { avatar },
+        { new: true },
+      )
+      .select('-password -__v');
+  }
 }
