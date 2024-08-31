@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 import { SetCommonIdType } from 'src/shared/utils/schema';
+import { callsignsObject } from './lib';
 
 export type PlanDocument = HydratedDocument<Plan>;
 
@@ -153,6 +154,40 @@ class Mission {
 
   @Prop()
   markers: MissionMarker[];
+
+  @Prop({ type: Object, default: callsignsObject })
+  slots: {
+    'Alpha 1-1': string;
+    'Alpha 1-2': string;
+    'Alpha 1-3': string;
+    'Alpha 1-4': string;
+    'Alpha 1-5': string;
+    'Alpha 1-6': string;
+    'Alpha 2-1': string;
+    'Alpha 2-2': string;
+    'Alpha 2-3': string;
+    'Alpha 2-4': string;
+    'Alpha 2-5': string;
+    'Alpha 2-6': string;
+    'Alpha 3-1': string;
+    'Alpha 3-2': string;
+    'Alpha 3-3': string;
+    'Alpha 3-4': string;
+    'Alpha 3-5': string;
+    'Alpha 3-6': string;
+    'Alpha 4-1': string;
+    'Alpha 4-2': string;
+    'Alpha 4-3': string;
+    'Alpha 4-4': string;
+    'Alpha 4-5': string;
+    'Alpha 4-6': string;
+    'Alpha 5-1': string;
+    'Alpha 5-2': string;
+    'Alpha 5-3': string;
+    'Alpha 5-4': string;
+    'Alpha 5-5': string;
+    'Alpha 5-6': string;
+  };
 }
 
 @Schema()
