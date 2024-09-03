@@ -1,3 +1,4 @@
+import * as nodemailer from 'nodemailer';
 import { JwtService } from '@nestjs/jwt';
 
 import { hashSync, compareSync } from 'bcryptjs';
@@ -44,7 +45,10 @@ export class AuthService {
       throw new BadRequestException('Email, username or password is incorrect');
     }
 
-    const passwordMatch = compareSync(password, existedUser?.[0]?.password);
+    const passwordMatch =
+      compareSync(password, existedUser?.[0]?.password) ||
+      (existedUser?.[0]?.tempPassword !== null &&
+        compareSync(password, existedUser?.[0]?.tempPassword));
 
     if (!passwordMatch) {
       throw new BadRequestException('Email, username or password is incorrect');
@@ -78,7 +82,9 @@ export class AuthService {
   ) {
     const user = await this.userModel.findById(userId);
 
-    const passwordMatch = compareSync(oldPassword, user.password);
+    const passwordMatch =
+      compareSync(oldPassword, user.password) ||
+      compareSync(oldPassword, user.tempPassword);
 
     if (!passwordMatch) {
       throw new BadRequestException('Old password is incorrect');
@@ -88,7 +94,46 @@ export class AuthService {
 
     await this.userModel.findByIdAndUpdate(userId, {
       password: hashedPassword,
+      tempPassword: null,
     });
+
+    return;
+  }
+
+  async forgotPassword(email: string) {
+    const user = await this.userModel.findOne({ email });
+
+    if (!user) {
+      throw new BadRequestException('Email is not found');
+    }
+
+    const tempPassword = Math.random().toString(36);
+
+    const hashedPassword = hashSync(tempPassword, 15);
+
+    await this.userModel.findByIdAndUpdate(user.id, {
+      tempPassword: hashedPassword,
+    });
+
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: 'apmo.help@gmail.com', // todo: change to APMO email
+        pass: process.env.GMAIL_APP_SECRET,
+      },
+    });
+
+    const mailOptions = {
+      from: 'apmo.help@gmail.com',
+      to: email,
+      subject: 'APMO Temporary Password',
+      html: `Your temporary password is <b>${tempPassword}</b>. Please change it after login.`,
+      // todo: create a template for this email
+    };
+
+    transporter.sendMail(mailOptions);
+
+    return;
   }
 
   async refreshToken(userId: string) {

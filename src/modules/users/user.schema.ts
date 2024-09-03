@@ -16,6 +16,9 @@ class User {
   password: string;
 
   @Prop({ default: null })
+  tempPassword: string;
+
+  @Prop({ default: null })
   avatar: string;
 
   @Prop()

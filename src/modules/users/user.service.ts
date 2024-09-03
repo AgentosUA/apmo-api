@@ -9,7 +9,7 @@ export class UserService {
     return this.userModel
       .findById(new mongoose.Types.ObjectId(userId))
       .populate('plans')
-      .select('-password -__v');
+      .select('-password -__v -tempPassword');
   }
 
   async changeAvatar(userId: string, avatar: string) {
@@ -19,6 +19,6 @@ export class UserService {
         { avatar },
         { new: true },
       )
-      .select('-password -__v');
+      .select('-password -__v -tempPassword');
   }
 }
