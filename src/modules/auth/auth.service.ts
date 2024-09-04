@@ -1,4 +1,5 @@
 import * as nodemailer from 'nodemailer';
+import { randomFillSync } from 'crypto';
 import { JwtService } from '@nestjs/jwt';
 
 import { hashSync, compareSync } from 'bcryptjs';
@@ -108,7 +109,13 @@ export class AuthService {
       throw new BadRequestException('Email is not found');
     }
 
-    const tempPassword = Math.random().toString(36);
+    const length = 20;
+    const characters =
+      '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz~!@-#$';
+
+    const tempPassword = Array.from(randomFillSync(new Uint32Array(length)))
+      .map((x) => characters[x % characters.length])
+      .join('');
 
     const hashedPassword = hashSync(tempPassword, 15);
 
@@ -128,8 +135,8 @@ export class AuthService {
       from: 'apmo.help@gmail.com',
       to: email,
       subject: 'APMO Temporary Password',
-      html: `Your temporary password is <b>${tempPassword}</b>. Please change it after login.`,
-      // todo: create a template for this email
+      html: `<font style="font-size: 16px;">Your temporary password is</font> <br /><table><tr><td style="padding: 20px; background: #000; color: #fff"; font-size: 16px;">${tempPassword}<tr /></tr></table><br/><b style="font-size: 16px">Please change you password after logging in.</b>`,
+      // todo: create a nice template for this email
     };
 
     transporter.sendMail(mailOptions);
