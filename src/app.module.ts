@@ -10,11 +10,17 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { MissionModule } from './modules/missions/missions.module';
 import { PlanModule } from './modules/plans/plan.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { UserModule } from './modules/users/user.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
     MongooseModule.forRoot(process.env.DB_URL),
+    UserModule,
+    AuthModule,
     PlanModule,
     MissionModule,
     ServeStaticModule.forRoot({

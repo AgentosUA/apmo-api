@@ -1,6 +1,8 @@
 import { Plan } from './plan.schema';
 
-export class CreatePlanDto extends Plan {}
+export class CreatePlanDto extends Plan {
+  readonly userId?: string;
+}
 
 export class UpdatePlanDto extends Plan {
   readonly id: string;
