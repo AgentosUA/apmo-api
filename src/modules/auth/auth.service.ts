@@ -84,7 +84,8 @@ export class AuthService {
 
     const passwordMatch =
       compareSync(oldPassword, user.password) ||
-      compareSync(oldPassword, user.tempPassword);
+      (user.tempPassword !== null &&
+        compareSync(oldPassword, user.tempPassword));
 
     if (!passwordMatch) {
       throw new BadRequestException('Old password is incorrect');

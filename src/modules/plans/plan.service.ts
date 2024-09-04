@@ -52,25 +52,43 @@ export class PlanService {
       throw new BadRequestException('id is not valid');
     }
 
-    if (userId) {
-      const user = await this.userModel.findById(userId);
+    const plan = await this.planModel.findById(new mongoose.Types.ObjectId(id));
 
-      if (!user || !user.plans.includes(id)) {
-        throw new ForbiddenException('You are not allowed to update this plan');
-      }
-    }
-
-    const plan = await this.planModel.findByIdAndUpdate(
-      new mongoose.Types.ObjectId(id),
-      updateData,
-      {
-        new: true,
-      },
+    const isCreatedByAuthorizedPerson = Boolean(
+      (
+        await this.userModel.find({
+          plans: {
+            $in: [plan.id],
+          },
+        })
+      )?.length,
     );
 
     if (!plan) {
       throw new NotFoundException('Plan not found');
     }
+
+    if (userId) {
+      const user = await this.userModel.findById(userId);
+
+      console.log(isCreatedByAuthorizedPerson);
+
+      if ((!user || !user.plans.includes(id)) && isCreatedByAuthorizedPerson) {
+        throw new ForbiddenException('You are not allowed to update this plan');
+      }
+
+      plan.set(updateData);
+      await plan.save();
+
+      return plan;
+    }
+
+    if (isCreatedByAuthorizedPerson) {
+      throw new ForbiddenException('You are not allowed to update this plan');
+    }
+
+    plan.set(updateData);
+    await plan.save();
 
     return plan;
   }

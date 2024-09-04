@@ -24,9 +24,14 @@ export class PlanController {
   @Post('/')
   async create(@Req() req, @Body() dto: CreatePlanDto) {
     const token = this.authGuard.extractTokenFromHeader(req);
-    const user = await this.authGuard.verifyAndGetUser(token);
+    let userId = '';
+    try {
+      userId = await this.authGuard.verifyAndGetUser(token);
+    } catch (error) {
+      userId = '';
+    }
 
-    return this.planService.createPlan({ ...dto, userId: user?.userId });
+    return this.planService.createPlan({ ...dto, userId: userId });
   }
 
   @Get(':id')
@@ -41,9 +46,15 @@ export class PlanController {
     @Body() dto: UpdatePlanDto,
   ) {
     const token = this.authGuard.extractTokenFromHeader(req);
-    const user = await this.authGuard.verifyAndGetUser(token);
+    let userId = '';
 
-    return this.planService.updatePlanById({ id, ...dto }, user?.userIdF);
+    try {
+      userId = (await this.authGuard.verifyAndGetUser(token)).userId;
+    } catch (error) {
+      userId = '';
+    }
+
+    return this.planService.updatePlanById({ id, ...dto }, userId);
   }
 
   @Delete(':id')
