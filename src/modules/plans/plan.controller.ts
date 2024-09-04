@@ -31,7 +31,7 @@ export class PlanController {
       userId = '';
     }
 
-    return this.planService.createPlan({ ...dto, userId: userId });
+    return this.planService.createPlan({ ...dto, userId });
   }
 
   @Get(':id')
