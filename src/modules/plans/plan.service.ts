@@ -71,10 +71,8 @@ export class PlanService {
     if (userId) {
       const user = await this.userModel.findById(userId);
 
-      console.log(isCreatedByAuthorizedPerson);
-
       if ((!user || !user.plans.includes(id)) && isCreatedByAuthorizedPerson) {
-        throw new ForbiddenException('You are not allowed to update this plan');
+        throw new ForbiddenException('Not allowed to update this plan');
       }
 
       plan.set(updateData);
@@ -84,7 +82,7 @@ export class PlanService {
     }
 
     if (isCreatedByAuthorizedPerson) {
-      throw new ForbiddenException('You are not allowed to update this plan');
+      throw new ForbiddenException('Not allowed to update this plan');
     }
 
     plan.set(updateData);

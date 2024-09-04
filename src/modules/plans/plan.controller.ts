@@ -26,7 +26,7 @@ export class PlanController {
     const token = this.authGuard.extractTokenFromHeader(req);
     let userId = '';
     try {
-      userId = await this.authGuard.verifyAndGetUser(token);
+      userId = (await this.authGuard.verifyAndGetUser(token))?.userId;
     } catch (error) {
       userId = '';
     }
