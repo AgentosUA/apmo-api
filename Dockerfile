@@ -29,7 +29,7 @@ COPY linux/lib/* /usr/local/lib/
 COPY linux/doc/* /usr/share/doc/depbo/
 
 # Set the library path so the system can find the DePbo shared libraries
-ENV LD_LIBRARY_PATH="/usr/local/lib:${LD_LIBRARY_PATH}"
+ENV LD_LIBRARY_PATH="/usr/local/lib"
 
 # Ensure binaries are executable
 RUN chmod +x /usr/local/bin/*
