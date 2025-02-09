@@ -26,7 +26,6 @@ COPY . .
 # Copy DePbo tools files to appropriate system directories
 COPY linux/bin/* /usr/local/bin/
 COPY linux/lib/* /usr/local/lib/
-COPY linux/doc/* /usr/share/doc/depbo/
 
 # Set the library path so the system can find the DePbo shared libraries
 ENV LD_LIBRARY_PATH="/usr/local/lib"
