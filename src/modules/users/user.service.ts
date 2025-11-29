@@ -8,7 +8,6 @@ export class UserService {
   async getProfile(userId: string) {
     return this.userModel
       .findById(new mongoose.Types.ObjectId(userId))
-      .populate('plans')
       .select('-password -__v -tempPassword');
   }
 
