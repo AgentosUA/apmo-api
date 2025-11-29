@@ -7,11 +7,12 @@ import {
   Patch,
   Delete,
   Req,
+  Query,
 } from '@nestjs/common';
 
 import { PlanService } from './plan.service';
 
-import { CreatePlanDto, UpdatePlanDto } from './plan.dto';
+import { CreatePlanDto, FindPlansDto, UpdatePlanDto } from './plan.dto';
 import { AuthGuard } from '../auth/auth.guard';
 
 @Controller('/plans')
@@ -55,6 +56,19 @@ export class PlanController {
     }
 
     return this.planService.updatePlanById({ id, ...dto }, userId);
+  }
+
+  @Get('/')
+  async findAll(@Req() req, @Query() dto: FindPlansDto) {
+    const token = this.authGuard.extractTokenFromHeader(req);
+    let userId = '';
+    try {
+      userId = (await this.authGuard.verifyAndGetUser(token))?.userId;
+    } catch (error) {
+      userId = '';
+    }
+
+    return this.planService.findPlans(dto, userId);
   }
 
   @Delete(':id')

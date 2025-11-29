@@ -15,3 +15,10 @@ export class GetPlanByIdDto {
 export class DeletePlanByIdDto {
   readonly id: string;
 }
+
+export class FindPlansDto {
+  readonly map?: string;
+  readonly missionName?: string;
+  readonly skip?: number;
+  readonly take?: number;
+}

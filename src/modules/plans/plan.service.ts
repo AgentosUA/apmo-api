@@ -15,6 +15,7 @@ import {
   UpdatePlanDto,
   GetPlanByIdDto,
   DeletePlanByIdDto,
+  FindPlansDto,
 } from './plan.dto';
 
 import { User } from '../users/user.schema';
@@ -105,6 +106,59 @@ export class PlanService {
     }
 
     return plan;
+  }
+
+  async findPlans(dto: FindPlansDto, userId: string) {
+    // Get user's plan IDs
+    const user = await this.userModel.findById(userId);
+    if (!user || !user.plans || user.plans.length === 0) {
+      return {
+        plans: [],
+        total: 0,
+        take: dto.take ?? undefined,
+        skip: dto.skip ?? undefined,
+      };
+    }
+
+    // Build query with user's plan IDs
+    const dtoQuery: any = {
+      _id: { $in: user.plans },
+    };
+
+    // Add optional filters
+    if (dto.map) {
+      dtoQuery['map'] = dto.map;
+    }
+    if (dto.missionName) {
+      dtoQuery['mission.missionName'] = dto.missionName;
+    }
+
+    // Get total count before pagination
+    const total = await this.planModel.countDocuments(dtoQuery);
+
+    // Build query with pagination
+    let query = this.planModel
+      .find(dtoQuery)
+      .select(
+        '_id planMarkers mission.missionName mission.island mission.slots',
+      );
+
+    // Apply pagination
+    if (dto.skip !== undefined) {
+      query = query.skip(dto.skip);
+    }
+    if (dto.take !== undefined) {
+      query = query.limit(dto.take);
+    }
+
+    const plans = await query.exec();
+
+    return {
+      data: plans,
+      total,
+      take: dto.take ?? undefined,
+      skip: dto.skip ?? undefined,
+    };
   }
 
   async deletePlanByIdDto(dto: DeletePlanByIdDto, userId: string) {
