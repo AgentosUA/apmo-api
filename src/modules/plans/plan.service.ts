@@ -140,7 +140,7 @@ export class PlanService {
     let query = this.planModel
       .find(dtoQuery)
       .select(
-        '_id planMarkers mission.missionName mission.island mission.slots',
+        '_id planMarkers mission.missionName mission.island mission.slots mission.author',
       );
 
     // Apply pagination
