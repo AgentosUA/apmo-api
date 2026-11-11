@@ -13,6 +13,7 @@ import { PlanModule } from './modules/plans/plan.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UserModule } from './modules/users/user.module';
 import { MapsModule } from './modules/maps/maps.module';
+import { MinioModule } from './modules/minio/minio.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { MapsModule } from './modules/maps/maps.module';
       isGlobal: true,
     }),
     MongooseModule.forRoot(process.env.DB_URL),
+    MinioModule,
     MapsModule,
     UserModule,
     AuthModule,

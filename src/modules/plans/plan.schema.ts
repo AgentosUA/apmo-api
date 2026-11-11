@@ -190,7 +190,7 @@ class Mission {
   };
 }
 
-@Schema()
+@Schema({ timestamps: true })
 class Plan {
   @Prop({ default: 'Untitled' })
   title: string;
@@ -200,6 +200,11 @@ class Plan {
 
   @Prop({ default: null })
   mission: Mission;
+
+  /** Set by `timestamps`. Missing on plans created before v2. */
+  createdAt?: Date;
+
+  updatedAt?: Date;
 }
 
 export {
