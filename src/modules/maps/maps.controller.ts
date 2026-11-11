@@ -6,11 +6,15 @@ import { Response } from 'express';
 export class MapsController {
   constructor() {}
 
-  @Get('*')
-  async getProfile(@Param() params, @Res() res: Response) {
+  // Express 5 (Nest 11+): wildcards must be named; `path` is an array of segments
+  @Get('*path')
+  async getProfile(
+    @Param('path') path: string[] | string,
+    @Res() res: Response,
+  ) {
     try {
       const response = await axios.get(
-        `${process.env.MAPS_URL}/${params['0']}`,
+        `${process.env.MAPS_URL}/${Array.isArray(path) ? path.join('/') : path}`,
         {
           responseType: 'arraybuffer',
         },
@@ -19,7 +23,7 @@ export class MapsController {
       res.setHeader('Content-Type', 'image/png');
 
       return res.send(response.data);
-    } catch (error) {
+    } catch {
       return res.status(404).send('Not found');
     }
   }

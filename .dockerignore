@@ -1,0 +1,16 @@
+node_modules
+dist
+coverage
+.git
+.gitignore
+.env*
+!.env.example
+*.md
+.DS_Store
+.idea
+.vscode
+Dockerfile
+.dockerignore
+public/missions/*
+!public/missions/playground
+!public/missions/.gitkeep

@@ -27,7 +27,7 @@ export class PlanController {
     let userId = '';
     try {
       userId = (await this.authGuard.verifyAndGetUser(token))?.userId;
-    } catch (error) {
+    } catch {
       userId = '';
     }
 
@@ -50,7 +50,7 @@ export class PlanController {
 
     try {
       userId = (await this.authGuard.verifyAndGetUser(token)).userId;
-    } catch (error) {
+    } catch {
       userId = '';
     }
 
