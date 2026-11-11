@@ -14,6 +14,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UserModule } from './modules/users/user.module';
 import { MapsModule } from './modules/maps/maps.module';
 import { MinioModule } from './modules/minio/minio.module';
+import { SquadModule } from './modules/squads/squad.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { MinioModule } from './modules/minio/minio.module';
     MinioModule,
     MapsModule,
     UserModule,
+    SquadModule,
     AuthModule,
     PlanModule,
     MissionModule,

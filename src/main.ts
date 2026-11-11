@@ -18,6 +18,9 @@ async function bootstrap() {
     optionsSuccessStatus: 204,
   });
 
+  // Writes plans that are open in real time before exiting (PlanRoomsService).
+  app.enableShutdownHooks();
+
   await app.listen(3000);
 }
 bootstrap();

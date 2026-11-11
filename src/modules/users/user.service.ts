@@ -7,11 +7,9 @@ import { Plan } from '../plans/plan.schema';
 import { MinioService } from '../minio/minio.service';
 import { APMO_BUCKET } from '../minio/minio.lib';
 import type { GetProfilePlansDto, PlanSortField } from './user.dto';
+import { escapeRegex } from 'src/shared/utils/validation';
 
 const PROFILE_PROJECTION = '-password -__v -tempPassword';
-
-const escapeRegex = (value: string) =>
-  value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /** Fields computed in the pipeline that the sort uses. */
 const SORT_FIELDS: Record<PlanSortField, string> = {
@@ -31,6 +29,7 @@ const LIST_EXCLUDED_FIELDS = [
   'mission.vehicles',
   'mission.markers',
   'mission.briefing',
+  'access',
 ];
 
 @Injectable()
@@ -40,6 +39,29 @@ export class UserService {
     @InjectModel(Plan.name) private planModel: Model<Plan>,
     private readonly minio: MinioService,
   ) {}
+
+  /** `GET /users/search?q=` — by username, for squad members and plan access. */
+  async searchUsers(query: string, excludeUserId?: string) {
+    if (!query) return [];
+
+    const users = await this.userModel
+      .find({
+        username: { $regex: escapeRegex(query), $options: 'i' },
+        ...(excludeUserId
+          ? { _id: { $ne: new mongoose.Types.ObjectId(excludeUserId) } }
+          : {}),
+      })
+      .select('username avatar')
+      .sort({ username: 1 })
+      .limit(10)
+      .lean();
+
+    return users.map(({ _id, username, avatar }) => ({
+      id: String(_id),
+      username,
+      avatar: avatar ?? null,
+    }));
+  }
 
   async getProfile(userId: string) {
     return this.userModel

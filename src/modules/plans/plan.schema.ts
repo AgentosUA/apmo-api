@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument } from 'mongoose';
+import { HydratedDocument, Types } from 'mongoose';
 import { SetCommonIdType } from 'src/shared/utils/schema';
 import { callsignsObject } from './lib';
 
@@ -190,10 +190,61 @@ class Mission {
   };
 }
 
+const ACCESS_LEVELS = ['public', 'restricted'] as const;
+
+type AccessLevel = (typeof ACCESS_LEVELS)[number];
+
+/**
+ * Who can read / edit a plan of an authorized user.
+ * `public` = anyone with the link; `restricted` = the owner plus the listed
+ * users and members of the listed squads.
+ */
+@Schema({ _id: false })
+class AccessRule {
+  @Prop({ type: String, enum: ACCESS_LEVELS, default: 'restricted' })
+  level: AccessLevel;
+
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }], default: [] })
+  users: Types.ObjectId[];
+
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'Squad' }], default: [] })
+  squads: Types.ObjectId[];
+}
+
+const AccessRuleSchema = SchemaFactory.createForClass(AccessRule);
+
+@Schema({ _id: false })
+class PlanAccess {
+  @Prop({ type: AccessRuleSchema })
+  read: AccessRule;
+
+  /** Edit implies read. */
+  @Prop({ type: AccessRuleSchema })
+  edit: AccessRule;
+}
+
+const PlanAccessSchema = SchemaFactory.createForClass(PlanAccess);
+
 @Schema({ timestamps: true })
 class Plan {
-  @Prop({ default: 'Untitled' })
+  /** Plan name, prefilled with the mission name on save. */
+  @Prop({ default: 'Untitled', trim: true, maxlength: 120 })
   title: string;
+
+  /** World (island) class name, so plans without a mission can open their map. */
+  @Prop({ type: String, default: null })
+  world: string | null;
+
+  /**
+   * Author. `null` = anonymous plan (anyone with the link can edit it).
+   * Missing on plans created before v2 — resolved from `User.plans` on first access.
+   */
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  owner?: Types.ObjectId | null;
+
+  /** Only for plans with an owner. Missing = defaults (public read, owner-only edit). */
+  @Prop({ type: PlanAccessSchema })
+  access?: PlanAccess;
 
   @Prop()
   planMarkers: string;
@@ -208,6 +259,9 @@ class Plan {
 }
 
 export {
+  ACCESS_LEVELS,
+  AccessRule,
+  PlanAccess,
   Plan,
   Group,
   Unit,
@@ -218,6 +272,8 @@ export {
   Briefing,
   Intel,
 };
+
+export type { AccessLevel };
 
 export const PlanSchema = SchemaFactory.createForClass(Plan);
 

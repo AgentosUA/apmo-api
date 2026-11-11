@@ -18,6 +18,7 @@ import {
   FILE_MAX_SIZE,
   FileValidation,
 } from 'src/shared/utils/file-validation';
+import { readString } from 'src/shared/utils/validation';
 
 @Controller('/profile')
 @UseGuards(AuthGuard)
@@ -67,5 +68,21 @@ export class UserController {
   @Delete('/avatar')
   async removeAvatar(@Req() req) {
     return this.userService.removeAvatar(req.user.userId as string);
+  }
+}
+
+/** Public user lookups (authorized users only). */
+@Controller('/users')
+@UseGuards(AuthGuard)
+export class UsersController {
+  constructor(private readonly userService: UserService) {}
+
+  /** `GET /users/search?q=` — by username, excludes the requester. */
+  @Get('/search')
+  async search(@Req() req, @Query('q') q: unknown) {
+    return this.userService.searchUsers(
+      readString(q, 'q') ?? '',
+      req.user.userId as string,
+    );
   }
 }
