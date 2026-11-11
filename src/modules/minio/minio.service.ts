@@ -90,6 +90,35 @@ export class MinioService implements OnModuleInit {
     return this.buildPublicUrl(bucket, objectName);
   }
 
+  /**
+   * Stores an object under a fixed, content-addressed name and returns its public URL.
+   * When the object already exists, `getBody` is not called and nothing is uploaded.
+   */
+  async putImmutableObject(
+    bucket: APMO_BUCKET,
+    objectName: string,
+    contentType: string,
+    getBody: () => Promise<Buffer>,
+  ) {
+    await this.ensureBucket(bucket);
+
+    const exists = await this.client
+      .statObject(bucket, objectName)
+      .then(() => true)
+      .catch(() => false);
+
+    if (!exists) {
+      const body = await getBody();
+
+      await this.client.putObject(bucket, objectName, body, body.length, {
+        'Content-Type': contentType,
+        'Cache-Control': 'public, max-age=31536000, immutable',
+      });
+    }
+
+    return this.buildPublicUrl(bucket, objectName);
+  }
+
   /** Deletes an object by its public URL. Foreign URLs are ignored. */
   async removeByUrl(url?: string | null) {
     const location = this.parsePublicUrl(url);

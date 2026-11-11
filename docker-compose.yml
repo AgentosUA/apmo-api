@@ -1,10 +1,11 @@
-# API + MinIO (avatars storage), same layout as asp-api.
+# API + MinIO (avatars & mission images storage), same layout as asp-api.
 #
 #   cp .env.example .env   # fill DB_URL, JWT_SECRET, MINIO_ROOT_PASSWORD (min 8 chars)...
 #   docker compose up -d --build
 #
 # API:            http://localhost:${API_PORT}/api
 # MinIO S3 API:   http://localhost:${MINIO_PORT}  (avatars: /user-avatars/<userId>/<uuid>.webp)
+#                 (mission images: /mission-images/<hash[0:2]>/<sha256>.webp)
 # MinIO console:  http://localhost:${MINIO_UI_PORT}
 #
 # minio/minio was removed from Docker Hub after MinIO Community Edition was archived,

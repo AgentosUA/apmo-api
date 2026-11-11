@@ -11,24 +11,34 @@ import * as fs from 'fs';
 
 import { Entities } from 'src/shared/types/sqm';
 import {
+  getBriefingImagePaths,
   getDiaryContent,
   getGroupsFromEntity,
   getMarkersFromEntity,
   getVehicles,
+  normalizeBriefing,
 } from './lib';
+import { MissionImagesService } from './mission-images.service';
 import {
   generateRandomString,
   removeExtraSlashes,
 } from 'src/shared/utils/string';
-import { fileToBase64 } from 'src/shared/utils/file';
 
 @Injectable()
 export class MissionService {
+  constructor(private readonly missionImages: MissionImagesService) {}
+
   async parseMission(file: Express.Multer.File, isTesting = false) {
     const fileId = isTesting ? 'playground' : generateRandomString();
-    let island = '';
+    // Island comes from the file name (`name.Island.pbo`): checked first, so a
+    // bad name fails before any work (and image uploads) is done.
+    const island = isTesting
+      ? 'Altis'
+      : file?.originalname?.split?.('.pbo')?.[0]?.split('.')?.[1];
 
     try {
+      if (!island) throw new BadRequestException();
+
       if (!isTesting) {
         fs.writeFileSync(`public/missions/${fileId}.pbo`, file.buffer);
 
@@ -54,39 +64,25 @@ export class MissionService {
 
       const intel = data.Mission.Intel;
       const entities = data.Mission.Entities as Entities;
-      let diary = [];
-      let previewImage = '';
+      const overviewPicture = data.ScenarioData?.overViewPicture
+        ? removeExtraSlashes(data.ScenarioData.overViewPicture)
+        : '';
+      const briefing = fs.existsSync(briefingPath)
+        ? normalizeBriefing(fs.readFileSync(briefingPath, 'utf-8'))
+        : '';
 
-      if (
-        data.ScenarioData.overViewPicture &&
-        fs.existsSync(
-          removeExtraSlashes(
-            `public/missions/${fileId}/${data.ScenarioData.overViewPicture}`,
-          ),
-        )
-      ) {
-        previewImage = fileToBase64(
-          removeExtraSlashes(
-            `public/missions/${fileId}/${data.ScenarioData.overViewPicture}`,
-          ),
-        );
-      }
+      // .paa / .jpg / .png → webp in MinIO; the UI receives URLs.
+      const imageUrls = await this.missionImages.upload(missionPath, [
+        overviewPicture,
+        ...getBriefingImagePaths(briefing),
+      ]);
 
-      if (fs.existsSync(briefingPath)) {
-        const briefingFile = fs.readFileSync(briefingPath, 'utf-8');
-
-        diary = getDiaryContent(missionPath, briefingFile);
-      }
+      const previewImage = imageUrls.get(overviewPicture) ?? '';
+      const diary = briefing ? getDiaryContent(briefing, imageUrls) : [];
 
       const groups = getGroupsFromEntity(entities);
       const markers = getMarkersFromEntity(entities);
       const vehicles = getVehicles(entities);
-
-      island = isTesting
-        ? 'Altis'
-        : file?.originalname?.split?.('.pbo')?.[0]?.split('.')?.[1];
-
-      if (!island) throw new BadRequestException();
 
       return {
         fileName:
@@ -131,8 +127,12 @@ export class MissionService {
     } finally {
       if (!isTesting) {
         setTimeout(() => {
-          fs.rmSync(`public/missions/${fileId}.pbo`);
-          fs.rmSync(`public/missions/${fileId}`, { recursive: true });
+          // `force`: the files may not exist when the import failed early.
+          fs.rmSync(`public/missions/${fileId}.pbo`, { force: true });
+          fs.rmSync(`public/missions/${fileId}`, {
+            recursive: true,
+            force: true,
+          });
         }, 10000);
       }
     }

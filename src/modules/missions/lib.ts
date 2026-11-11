@@ -1,5 +1,4 @@
 import { Entities } from 'src/shared/types/sqm';
-import { fileToBase64 } from 'src/shared/utils/file';
 import {
   extractImagePaths,
   generateRandomString,
@@ -149,47 +148,40 @@ const getMarkersFromEntity = (entities: Entities) => {
   return markers;
 };
 
-const replacePathsWithBase64 = (
-  htmlText: string,
-  imagePaths: string[] = [],
-) => {
-  imagePaths.forEach((path) => {
-    const base64Data = fileToBase64(path);
-
-    if (base64Data) {
-      htmlText = htmlText.replaceAll(path, base64Data);
-    }
-  });
-
-  return htmlText;
-};
-
-const getDiaryContent = (missionPath: string, diaryContent: string) => {
-  diaryContent = diaryContent
+/**
+ * Briefing (`briefing.sqf`) with the Arma syntax normalized: forward slashes,
+ * `<img image=…>` → `<img src=…>`, unified "diary" subject and quotes.
+ */
+const normalizeBriefing = (briefing: string) =>
+  briefing
     .replaceAll(/\\/g, '/')
-    .replaceAll('image=', 'src=');
+    .replaceAll('image=', 'src=')
+    .replaceAll("'diary'", '"diary"')
+    .replaceAll("'Diary'", '"diary"')
+    .replaceAll('"Diary"', '"diary"')
+    .replaceAll('""', "'");
 
-  diaryContent = diaryContent.replaceAll('.JPG', '.jpg');
-  diaryContent = diaryContent.replaceAll('.PNG', '.png');
-  diaryContent = diaryContent.replaceAll('.JPEG', '.jpeg');
-  diaryContent = diaryContent.replaceAll('.PAA', '.paa');
-  diaryContent = diaryContent.replaceAll("'diary'", '"diary"');
-  diaryContent = diaryContent.replaceAll("'Diary'", '"diary"');
-  diaryContent = diaryContent.replaceAll('"Diary"', '"diary"');
-  diaryContent = diaryContent.replaceAll('""', "'");
+/** Paths of all `<img src>` in a normalized briefing. */
+const getBriefingImagePaths = (briefing: string) => extractImagePaths(briefing);
 
-  const imagePaths = extractImagePaths(diaryContent);
+/**
+ * Diary records of a normalized briefing. `<img src>` paths are replaced with
+ * the URLs from `imageUrls`; images without a URL are removed.
+ */
+const getDiaryContent = (
+  briefing: string,
+  imageUrls: ReadonlyMap<string, string> = new Map(),
+) => {
+  const diaryContent = briefing.replace(
+    /<img[^>]*?\ssrc=(['"])([^'"]+)\1[^>]*>/g,
+    (tag: string, quote: string, path: string) => {
+      const url = imageUrls.get(path);
 
-  imagePaths.forEach((path, index) => {
-    const filePath = `${missionPath}/${path}`;
-
-    imagePaths[index] = filePath;
-    diaryContent = diaryContent.replaceAll(path, filePath);
-  });
-
-  diaryContent = replacePathsWithBase64(diaryContent, imagePaths);
-  diaryContent = diaryContent.replaceAll(`${missionPath}/`, '');
-  diaryContent = diaryContent.replaceAll(missionPath, '');
+      return url
+        ? tag.replace(`${quote}${path}${quote}`, `${quote}${url}${quote}`)
+        : '';
+    },
+  );
 
   const diary: { id: string; name: string; value: string }[] = [];
 
@@ -212,6 +204,8 @@ export {
   getMarkersFromEntity,
   getGroupsFromEntity,
   getUnitFromGroupEntity,
-  getDiaryContent,
   getVehicles,
+  normalizeBriefing,
+  getBriefingImagePaths,
+  getDiaryContent,
 };
