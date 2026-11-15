@@ -1,9 +1,9 @@
-// import { Plan } from './plan.schema';
-
 export class SignUpDto {
   readonly email: string;
   readonly username?: string;
   readonly password: string;
+  /** Language of the web app (`en`, `uk`, `cz`), used for emails. */
+  readonly language?: string;
 }
 
 export class SignInDto {
@@ -13,6 +13,12 @@ export class SignInDto {
 }
 
 export class ChangePasswordDto {
-  readonly oldPassword: string;
+  /** Not needed when the user has no password yet (signed up with Google / Steam / VTG). */
+  readonly oldPassword?: string;
   readonly newPassword: string;
+}
+
+export class ForgotPasswordDto {
+  readonly email: string;
+  readonly language?: string;
 }

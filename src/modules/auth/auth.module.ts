@@ -7,6 +7,8 @@ import { AuthController } from './auth.controller';
 import { User, UserSchema } from '../users/user.schema';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule } from '@nestjs/config';
+import { OAuthController } from './oauth/oauth.controller';
+import { OAuthService } from './oauth/oauth.service';
 
 @Module({
   imports: [
@@ -25,7 +27,7 @@ import { ConfigModule } from '@nestjs/config';
       signOptions: { expiresIn: '2 days' },
     }),
   ],
-  controllers: [AuthController],
-  providers: [AuthService],
+  controllers: [AuthController, OAuthController],
+  providers: [AuthService, OAuthService],
 })
 export class AuthModule {}

@@ -4,6 +4,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 
 import { User, UserSchema } from './user.schema';
 import { UserService } from './user.service';
+import { UserIndexesMigration } from './user-indexes.migration';
 import { UserController, UsersController } from './user.controller';
 import { Plan, PlanSchema } from '../plans/plan.schema';
 
@@ -21,6 +22,6 @@ import { Plan, PlanSchema } from '../plans/plan.schema';
     ]),
   ],
   controllers: [UserController, UsersController],
-  providers: [UserService],
+  providers: [UserService, UserIndexesMigration],
 })
 export class UserModule {}

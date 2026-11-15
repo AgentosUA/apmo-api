@@ -1,23 +1,42 @@
-import * as nodemailer from 'nodemailer';
 import { randomFillSync } from 'crypto';
 import { JwtService } from '@nestjs/jwt';
 
 import { hashSync, compareSync } from 'bcryptjs';
 
-import { BadRequestException, Injectable } from '@nestjs/common';
-import { SignInDto, SignUpDto } from './auth.dto';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
+import { ForgotPasswordDto, SignInDto, SignUpDto } from './auth.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { User } from '../users/user.schema';
 import { Model } from 'mongoose';
+import { MailService } from '../mail/mail.service';
+import {
+  resolveMailLanguage,
+  temporaryPasswordEmail,
+  welcomeEmail,
+} from '../mail/templates';
+
+const TOKEN_TTL_SECONDS = 40 * 60 * 60;
+
+/** bcrypt never throws on a user without a password (external sign-in only). */
+const matches = (password: unknown, hash?: string | null) =>
+  typeof password === 'string' && Boolean(hash) && compareSync(password, hash);
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     @InjectModel(User.name) private userModel: Model<User>,
     private jwtService: JwtService,
+    private mail: MailService,
   ) {}
 
-  async signUp({ email, username, password }: SignUpDto) {
+  async signUp({ email, username, password, language }: SignUpDto) {
     const existedUser = await this.userModel.find({
       $or: [{ email }, { username }],
     });
@@ -28,65 +47,77 @@ export class AuthService {
 
     const hashedPassword = hashSync(password, 15);
 
-    const newUser = new this.userModel({
+    const newUser = await new this.userModel({
       email,
       username,
       password: hashedPassword,
+      language: resolveMailLanguage(language),
+    }).save();
+
+    this.mail.sendInBackground({
+      to: newUser.email,
+      message: welcomeEmail({
+        lang: resolveMailLanguage(newUser.language),
+        username: newUser.username,
+      }),
     });
 
-    return newUser.save();
+    // Never send the password hash back.
+    const user = newUser.toJSON();
+
+    delete user.password;
+    delete user.tempPassword;
+
+    return user;
   }
 
   async signIn({ email, username = email, password }: SignInDto) {
+    if (!email && !username) {
+      throw new BadRequestException('Email, username or password is incorrect');
+    }
+
     const existedUser = await this.userModel.find({
       $or: [{ email }, { username }],
     });
 
-    if (!existedUser.length) {
+    const user = existedUser[0];
+
+    if (!user) {
       throw new BadRequestException('Email, username or password is incorrect');
     }
 
     const passwordMatch =
-      compareSync(password, existedUser?.[0]?.password) ||
-      (existedUser?.[0]?.tempPassword !== null &&
-        compareSync(password, existedUser?.[0]?.tempPassword));
+      matches(password, user.password) || matches(password, user.tempPassword);
 
     if (!passwordMatch) {
       throw new BadRequestException('Email, username or password is incorrect');
     }
 
-    const token = this.jwtService.sign({
-      userId: existedUser[0].id,
-    });
-
-    const refreshToken = this.jwtService.sign(
-      {
-        userId: existedUser[0].id,
-      },
-      {
-        expiresIn: '7d',
-      },
-    );
-
-    return {
-      token,
-      refreshToken,
-      expiresIn: 40 * 60 * 60,
-      expirationDate: new Date(Date.now() + 40 * 60 * 60 * 1000),
-    };
+    return this.issueTokens(user.id);
   }
 
   async changePassword(
     userId: string,
-    oldPassword: string,
+    oldPassword: string | undefined,
     newPassword: string,
   ) {
     const user = await this.userModel.findById(userId);
 
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    if (typeof newPassword !== 'string' || !newPassword) {
+      throw new BadRequestException('New password is required');
+    }
+
+    // Users who signed up with Google / Steam / VTG set their first password.
+    const hasPassword = Boolean(user.password || user.tempPassword);
+
     const passwordMatch =
-      compareSync(oldPassword, user.password) ||
-      (user.tempPassword !== null &&
-        compareSync(oldPassword, user.tempPassword));
+      !hasPassword ||
+      matches(oldPassword, user.password) ||
+      matches(oldPassword, user.tempPassword);
 
     if (!passwordMatch) {
       throw new BadRequestException('Old password is incorrect');
@@ -102,8 +133,8 @@ export class AuthService {
     return;
   }
 
-  async forgotPassword(email: string) {
-    const user = await this.userModel.findOne({ email });
+  async forgotPassword({ email, language }: ForgotPasswordDto) {
+    const user = email ? await this.userModel.findOne({ email }) : null;
 
     if (!user) {
       throw new BadRequestException('Email is not found');
@@ -123,28 +154,35 @@ export class AuthService {
       tempPassword: hashedPassword,
     });
 
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: 'apmo.help@gmail.com', // todo: change to APMO email
-        pass: process.env.GMAIL_APP_SECRET,
-      },
-    });
+    try {
+      await this.mail.send({
+        to: user.email,
+        message: temporaryPasswordEmail({
+          lang: resolveMailLanguage(language, user.language),
+          username: user.username,
+          password: tempPassword,
+        }),
+      });
+    } catch (error) {
+      this.logger.error(
+        `Failed to send the temporary password to ${user.email}`,
+        error instanceof Error ? error.stack : String(error),
+      );
 
-    const mailOptions = {
-      from: 'apmo.help@gmail.com',
-      to: email,
-      subject: 'APMO Temporary Password',
-      html: `<font style="font-size: 16px;">Your temporary password is</font> <br /><table><tr><td style="padding: 20px; background: #000; color: #fff"; font-size: 16px;">${tempPassword}<tr /></tr></table><br/><b style="font-size: 16px">Please change you password after logging in.</b>`,
-      // todo: create a nice template for this email
-    };
-
-    transporter.sendMail(mailOptions);
+      throw new ServiceUnavailableException(
+        'Failed to send the email, please try again later',
+      );
+    }
 
     return;
   }
 
   async refreshToken(userId: string) {
+    return this.issueTokens(userId);
+  }
+
+  /** Access + refresh token pair, the same for every way of signing in. */
+  issueTokens(userId: string) {
     const token = this.jwtService.sign({
       userId,
     });
@@ -161,8 +199,8 @@ export class AuthService {
     return {
       token,
       refreshToken,
-      expiresIn: 40 * 60 * 60,
-      expirationDate: new Date(Date.now() + 40 * 60 * 60 * 1000),
+      expiresIn: TOKEN_TTL_SECONDS,
+      expirationDate: new Date(Date.now() + TOKEN_TTL_SECONDS * 1000),
     };
   }
 }

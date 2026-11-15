@@ -1,5 +1,9 @@
 import mongoose, { Model, PipelineStage } from 'mongoose';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 
 import { User } from './user.schema';
@@ -8,8 +12,17 @@ import { MinioService } from '../minio/minio.service';
 import { APMO_BUCKET } from '../minio/minio.lib';
 import type { GetProfilePlansDto, PlanSortField } from './user.dto';
 import { escapeRegex } from 'src/shared/utils/validation';
+import { readUsername, USERNAME_TAKEN } from './username';
 
 const PROFILE_PROJECTION = '-password -__v -tempPassword';
+
+/** Linked sign-in methods as the profile shows them (no provider ids). */
+const toPublicAccounts = (accounts: User['accounts'] = []) =>
+  accounts.map(({ provider, name, linkedAt }) => ({
+    provider,
+    name: name ?? null,
+    linkedAt,
+  }));
 
 /** Fields computed in the pipeline that the sort uses. */
 const SORT_FIELDS: Record<PlanSortField, string> = {
@@ -64,10 +77,26 @@ export class UserService {
   }
 
   async getProfile(userId: string) {
-    return this.userModel
-      .findById(new mongoose.Types.ObjectId(userId))
-      .populate('plans')
-      .select(PROFILE_PROJECTION);
+    const id = new mongoose.Types.ObjectId(userId);
+
+    const [user, credentials] = await Promise.all([
+      this.userModel.findById(id).populate('plans').select(PROFILE_PROJECTION),
+      this.userModel.findById(id).select('password').lean(),
+    ]);
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const json = user.toJSON();
+
+    return {
+      ...json,
+      email: json.email ?? null,
+      accounts: toPublicAccounts(json.accounts),
+      /** False for users who only sign in with Google / Steam / VTG. */
+      hasPassword: Boolean(credentials?.password),
+    };
   }
 
   /**
@@ -162,6 +191,44 @@ export class UserService {
       totalAll: result?.totalAll?.[0]?.count ?? 0,
       worlds: (result?.worlds ?? []) as { name: string; count: number }[],
     };
+  }
+
+  /**
+   * Changes the nickname. Unique ignoring case, so "Sokil" and "sokil" can
+   * never be two different people.
+   */
+  async changeUsername(userId: string, value: unknown) {
+    const username = readUsername(value);
+    const id = new mongoose.Types.ObjectId(userId);
+
+    const taken = await this.userModel.exists({
+      _id: { $ne: id },
+      username: { $regex: `^${escapeRegex(username)}$`, $options: 'i' },
+    });
+
+    if (taken) {
+      throw new BadRequestException(USERNAME_TAKEN);
+    }
+
+    try {
+      const updated = await this.userModel
+        .findByIdAndUpdate(id, { username }, { new: true })
+        .select('username')
+        .lean();
+
+      if (!updated) {
+        throw new NotFoundException('User not found');
+      }
+
+      return { username: updated.username };
+    } catch (error) {
+      // Someone took it between the check and the update (unique index).
+      if ((error as { code?: number })?.code === 11000) {
+        throw new BadRequestException(USERNAME_TAKEN);
+      }
+
+      throw error;
+    }
   }
 
   /** Sets an external avatar URL ('' resets to the default avatar). */

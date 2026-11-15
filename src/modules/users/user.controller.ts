@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Patch,
   Post,
   Query,
   Req,
@@ -38,6 +39,15 @@ export class UserController {
     return this.userService.getPlans(
       req.user.userId as string,
       parseGetProfilePlansQuery(query),
+    );
+  }
+
+  /** `{ username }` — 3–24 characters, unique ignoring case. */
+  @Patch('/username')
+  async changeUsername(@Req() req, @Body() body) {
+    return this.userService.changeUsername(
+      req.user.userId as string,
+      body?.username,
     );
   }
 

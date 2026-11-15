@@ -15,6 +15,7 @@ import { UserModule } from './modules/users/user.module';
 import { MapsModule } from './modules/maps/maps.module';
 import { MinioModule } from './modules/minio/minio.module';
 import { SquadModule } from './modules/squads/squad.module';
+import { MailModule } from './modules/mail/mail.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { SquadModule } from './modules/squads/squad.module';
     }),
     MongooseModule.forRoot(process.env.DB_URL),
     MinioModule,
+    MailModule,
     MapsModule,
     UserModule,
     SquadModule,
