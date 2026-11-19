@@ -1,11 +1,20 @@
 import { randomUUID } from 'crypto';
 
+import {
+  CreateBucketCommand,
+  DeleteObjectCommand,
+  HeadBucketCommand,
+  HeadObjectCommand,
+  PutBucketPolicyCommand,
+  PutObjectCommand,
+  S3Client,
+  S3ServiceException,
+} from '@aws-sdk/client-s3';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { Client } from 'minio';
 // No esModuleInterop in tsconfig: a default import of the CJS `sharp` would be undefined.
 import * as sharp from 'sharp';
 
-import { APMO_BUCKET } from './minio.lib';
+import { APMO_BUCKET } from './storage.lib';
 import { detectImageType } from 'src/shared/utils/file-signature';
 
 type UploadImageOptions = {
@@ -15,34 +24,43 @@ type UploadImageOptions = {
   maxSize?: number;
 };
 
-const REGION = 'us-east-1';
+/** Object names are unique / content-addressed, so the content never changes. */
+const IMMUTABLE_CACHE_CONTROL = 'public, max-age=31536000, immutable';
+
+const DEFAULT_ENDPOINT = 'http://localhost:9000';
 
 /**
- * MinIO file storage (same approach as asp-api).
+ * S3-compatible file storage (RustFS), accessed with the standard AWS SDK.
  *
  * Buckets are public-read, so the stored URL is used directly as `<img src>`.
  */
 @Injectable()
-export class MinioService implements OnModuleInit {
-  private readonly logger = new Logger(MinioService.name);
+export class StorageService implements OnModuleInit {
+  private readonly logger = new Logger(StorageService.name);
 
-  private readonly client: Client;
+  private readonly client: S3Client;
 
   private readonly readyBuckets = new Set<APMO_BUCKET>();
 
   constructor() {
-    this.client = new Client({
-      endPoint: process.env.MINIO_ENDPOINT || 'localhost',
-      port: Number(process.env.MINIO_PORT) || 9000,
-      useSSL: process.env.MINIO_USE_SSL === 'true',
-      region: REGION,
-      accessKey: process.env.MINIO_ROOT_USER || '',
-      secretKey: process.env.MINIO_ROOT_PASSWORD || '',
+    this.client = new S3Client({
+      endpoint: this.endpoint,
+      region: process.env.S3_REGION || 'us-east-1',
+      credentials: {
+        accessKeyId: process.env.S3_ACCESS_KEY || '',
+        secretAccessKey: process.env.S3_SECRET_KEY || '',
+      },
+      // RustFS serves buckets as paths: http://host:9000/<bucket>/<object>.
+      forcePathStyle: true,
+      // Send/verify checksums only when an operation requires them: the SDK's
+      // default CRC32 headers are not supported by every S3-compatible server.
+      requestChecksumCalculation: 'WHEN_REQUIRED',
+      responseChecksumValidation: 'WHEN_REQUIRED',
     });
   }
 
   onModuleInit() {
-    // Do not block the start-up when MinIO is still booting; uploads retry it.
+    // Do not block the start-up when the storage is still booting; uploads retry it.
     Promise.all(
       Object.values(APMO_BUCKET).map((bucket) => this.ensureBucket(bucket)),
     ).catch(() => undefined);
@@ -80,12 +98,7 @@ export class MinioService implements OnModuleInit {
       .join('/');
 
     await this.ensureBucket(bucket);
-
-    await this.client.putObject(bucket, objectName, body, body.length, {
-      'Content-Type': contentType,
-      // Object names are unique per upload, so the content never changes.
-      'Cache-Control': 'public, max-age=31536000, immutable',
-    });
+    await this.putObject(bucket, objectName, body, contentType);
 
     return this.buildPublicUrl(bucket, objectName);
   }
@@ -103,17 +116,12 @@ export class MinioService implements OnModuleInit {
     await this.ensureBucket(bucket);
 
     const exists = await this.client
-      .statObject(bucket, objectName)
+      .send(new HeadObjectCommand({ Bucket: bucket, Key: objectName }))
       .then(() => true)
       .catch(() => false);
 
     if (!exists) {
-      const body = await getBody();
-
-      await this.client.putObject(bucket, objectName, body, body.length, {
-        'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=31536000, immutable',
-      });
+      await this.putObject(bucket, objectName, await getBody(), contentType);
     }
 
     return this.buildPublicUrl(bucket, objectName);
@@ -126,28 +134,46 @@ export class MinioService implements OnModuleInit {
     if (!location) return;
 
     try {
-      await this.client.removeObject(location.bucket, location.objectName);
+      await this.client.send(
+        new DeleteObjectCommand({
+          Bucket: location.bucket,
+          Key: location.objectName,
+        }),
+      );
     } catch (error) {
       this.logger.warn(`Failed to delete ${url}: ${String(error)}`);
     }
   }
 
+  private putObject(
+    bucket: APMO_BUCKET,
+    objectName: string,
+    body: Buffer,
+    contentType: string,
+  ) {
+    return this.client.send(
+      new PutObjectCommand({
+        Bucket: bucket,
+        Key: objectName,
+        Body: body,
+        ContentLength: body.length,
+        ContentType: contentType,
+        CacheControl: IMMUTABLE_CACHE_CONTROL,
+      }),
+    );
+  }
+
+  /** S3 API endpoint the API talks to, e.g. http://rustfs:9000 inside docker compose. */
+  private get endpoint() {
+    return (process.env.S3_ENDPOINT || DEFAULT_ENDPOINT).replace(/\/+$/, '');
+  }
+
   /**
-   * Public base URL of MinIO. `MINIO_PUBLIC_URL` overrides it when MinIO is
+   * Public base URL of the storage. `S3_PUBLIC_URL` overrides it when RustFS is
    * behind a proxy / another domain (e.g. https://files.example.com).
    */
   private get publicBaseUrl() {
-    if (process.env.MINIO_PUBLIC_URL) {
-      return process.env.MINIO_PUBLIC_URL.replace(/\/+$/, '');
-    }
-
-    const host = process.env.MINIO_ENDPOINT || 'localhost';
-    const port = process.env.MINIO_PORT || '9000';
-    const isSsl = process.env.MINIO_USE_SSL === 'true';
-    const isDefaultPort =
-      (isSsl && port === '443') || (!isSsl && port === '80');
-
-    return `${isSsl ? 'https' : 'http'}://${host}${isDefaultPort ? '' : `:${port}`}`;
+    return (process.env.S3_PUBLIC_URL || this.endpoint).replace(/\/+$/, '');
   }
 
   private buildPublicUrl(bucket: APMO_BUCKET, objectName: string) {
@@ -172,43 +198,48 @@ export class MinioService implements OnModuleInit {
     return { bucket: bucket as APMO_BUCKET, objectName };
   }
 
-  private isBucketAlreadyOwnedError(error: unknown) {
+  private isBucketAlreadyCreatedError(error: unknown) {
     return (
-      typeof error === 'object' &&
-      error !== null &&
-      'code' in error &&
-      (error as { code?: string }).code === 'BucketAlreadyOwnedByYou'
+      error instanceof S3ServiceException &&
+      ['BucketAlreadyOwnedByYou', 'BucketAlreadyExists'].includes(error.name)
     );
+  }
+
+  private async bucketExists(bucket: APMO_BUCKET) {
+    return this.client
+      .send(new HeadBucketCommand({ Bucket: bucket }))
+      .then(() => true)
+      .catch(() => false);
   }
 
   private async ensureBucket(bucket: APMO_BUCKET) {
     if (this.readyBuckets.has(bucket)) return;
 
     try {
-      const exists = await this.client.bucketExists(bucket).catch(() => false);
-
-      if (!exists) {
+      if (!(await this.bucketExists(bucket))) {
         this.logger.log(`Bucket "${bucket}" not found. Creating...`);
 
         try {
-          await this.client.makeBucket(bucket, REGION);
+          await this.client.send(new CreateBucketCommand({ Bucket: bucket }));
         } catch (error) {
-          if (!this.isBucketAlreadyOwnedError(error)) throw error;
+          if (!this.isBucketAlreadyCreatedError(error)) throw error;
         }
       }
 
-      await this.client.setBucketPolicy(
-        bucket,
-        JSON.stringify({
-          Version: '2012-10-17',
-          Statement: [
-            {
-              Effect: 'Allow',
-              Principal: { AWS: ['*'] },
-              Action: ['s3:GetObject'],
-              Resource: [`arn:aws:s3:::${bucket}/*`],
-            },
-          ],
+      await this.client.send(
+        new PutBucketPolicyCommand({
+          Bucket: bucket,
+          Policy: JSON.stringify({
+            Version: '2012-10-17',
+            Statement: [
+              {
+                Effect: 'Allow',
+                Principal: { AWS: ['*'] },
+                Action: ['s3:GetObject'],
+                Resource: [`arn:aws:s3:::${bucket}/*`],
+              },
+            ],
+          }),
         }),
       );
 

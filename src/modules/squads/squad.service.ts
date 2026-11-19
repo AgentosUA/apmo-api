@@ -13,8 +13,8 @@ import { Squad, SQUAD_MEMBERS_MAX } from './squad.schema';
 import type { CreateSquadDto, UpdateSquadDto } from './squad.dto';
 import { User } from '../users/user.schema';
 import { Plan } from '../plans/plan.schema';
-import { MinioService } from '../minio/minio.service';
-import { APMO_BUCKET } from '../minio/minio.lib';
+import { StorageService } from '../storage/storage.service';
+import { APMO_BUCKET } from '../storage/storage.lib';
 
 /** Public part of a user, safe to show to anyone. */
 const PUBLIC_USER_FIELDS = 'username avatar';
@@ -27,7 +27,7 @@ export class SquadService {
     @InjectModel(Squad.name) private squadModel: Model<Squad>,
     @InjectModel(User.name) private userModel: Model<User>,
     @InjectModel(Plan.name) private planModel: Model<Plan>,
-    private readonly minio: MinioService,
+    private readonly storage: StorageService,
   ) {}
 
   /** Squads the user owns or is a member of. */
@@ -112,7 +112,7 @@ export class SquadService {
       },
     );
 
-    await this.minio.removeByUrl(squad.logo);
+    await this.storage.removeByUrl(squad.logo);
   }
 
   /** Owner only. `memberId` comes from the users search. */
@@ -174,7 +174,7 @@ export class SquadService {
   async uploadLogo(userId: string, id: string, file: Express.Multer.File) {
     const squad = await this.getOwned(userId, id);
 
-    const url = await this.minio.uploadImage(
+    const url = await this.storage.uploadImage(
       APMO_BUCKET.SQUAD_LOGOS,
       file.buffer,
       { prefix: String(squad._id), maxSize: 512 },
@@ -186,12 +186,12 @@ export class SquadService {
       squad.logo = url;
       await squad.save();
     } catch (error) {
-      await this.minio.removeByUrl(url);
+      await this.storage.removeByUrl(url);
       throw error;
     }
 
     if (previous && previous !== url) {
-      await this.minio.removeByUrl(previous);
+      await this.storage.removeByUrl(previous);
     }
 
     return this.getById(id);
@@ -204,7 +204,7 @@ export class SquadService {
     squad.logo = null;
     await squad.save();
 
-    await this.minio.removeByUrl(previous);
+    await this.storage.removeByUrl(previous);
 
     return this.getById(id);
   }

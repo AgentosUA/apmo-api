@@ -71,7 +71,7 @@ export class MissionService {
         ? normalizeBriefing(fs.readFileSync(briefingPath, 'utf-8'))
         : '';
 
-      // .paa / .jpg / .png → webp in MinIO; the UI receives URLs.
+      // .paa / .jpg / .png → webp in RustFS (S3); the UI receives URLs.
       const imageUrls = await this.missionImages.upload(missionPath, [
         overviewPicture,
         ...getBriefingImagePaths(briefing),

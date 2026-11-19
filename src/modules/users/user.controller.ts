@@ -62,7 +62,7 @@ export class UserController {
 
   /**
    * `multipart/form-data` with an image (JPEG/PNG/GIF/WebP, ≤ 5 MB) in the
-   * `avatar` field. Stored in MinIO, static images are converted to webp.
+   * `avatar` field. Stored in RustFS (S3), static images are converted to webp.
    */
   @Post('/avatar')
   @UseInterceptors(

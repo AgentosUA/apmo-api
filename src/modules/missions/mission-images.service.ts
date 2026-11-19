@@ -5,8 +5,8 @@ import { Injectable, Logger } from '@nestjs/common';
 // No esModuleInterop in tsconfig: a default import of the CJS `sharp` would be undefined.
 import * as sharp from 'sharp';
 
-import { MinioService } from '../minio/minio.service';
-import { APMO_BUCKET } from '../minio/minio.lib';
+import { StorageService } from '../storage/storage.service';
+import { APMO_BUCKET } from '../storage/storage.lib';
 import { resolveMissionFile } from 'src/shared/utils/file';
 import { detectImageType } from 'src/shared/utils/file-signature';
 import { decodePaa } from 'src/shared/utils/paa';
@@ -19,14 +19,14 @@ const CONVERSION_VERSION = 'v1';
 
 /**
  * Mission images (overview picture, briefing `<img>`): `.paa`, `.jpg`, `.png`
- * are converted to webp and stored in MinIO, so the UI gets plain URLs
+ * are converted to webp and stored in RustFS (S3), so the UI gets plain URLs
  * instead of base64 data.
  */
 @Injectable()
 export class MissionImagesService {
   private readonly logger = new Logger(MissionImagesService.name);
 
-  constructor(private readonly minio: MinioService) {}
+  constructor(private readonly storage: StorageService) {}
 
   /**
    * Uploads the images referenced by the mission.
@@ -71,7 +71,7 @@ export class MissionImagesService {
       .update(source)
       .digest('hex');
 
-    return this.minio.putImmutableObject(
+    return this.storage.putImmutableObject(
       APMO_BUCKET.MISSION_IMAGES,
       `${hash.slice(0, 2)}/${hash}.webp`,
       'image/webp',

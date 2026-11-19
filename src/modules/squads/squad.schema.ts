@@ -25,7 +25,7 @@ class Squad {
   @Prop({ default: '', maxlength: SQUAD_DESCRIPTION_MAX })
   description: string;
 
-  /** Public URL of the logo in MinIO (or null). */
+  /** Public URL of the logo in RustFS (S3) (or null). */
   @Prop({ type: String, default: null })
   logo: string | null;
 

@@ -13,7 +13,7 @@ import { PlanModule } from './modules/plans/plan.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UserModule } from './modules/users/user.module';
 import { MapsModule } from './modules/maps/maps.module';
-import { MinioModule } from './modules/minio/minio.module';
+import { StorageModule } from './modules/storage/storage.module';
 import { SquadModule } from './modules/squads/squad.module';
 import { MailModule } from './modules/mail/mail.module';
 
@@ -23,7 +23,7 @@ import { MailModule } from './modules/mail/mail.module';
       isGlobal: true,
     }),
     MongooseModule.forRoot(process.env.DB_URL),
-    MinioModule,
+    StorageModule,
     MailModule,
     MapsModule,
     UserModule,

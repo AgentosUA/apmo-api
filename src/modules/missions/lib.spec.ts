@@ -21,12 +21,12 @@ describe('briefing images', () => {
   it('replaces paths with URLs and drops images without one', () => {
     const [record] = getDiaryContent(
       briefing,
-      new Map([['img/Map.PAA', 'http://minio/mission-images/ab/abc.webp']]),
+      new Map([['img/Map.PAA', 'http://rustfs/mission-images/ab/abc.webp']]),
     );
 
     expect(record.name).toBe('Situation');
     expect(record.value).toBe(
-      "Map:<br/><img src='http://minio/mission-images/ab/abc.webp' width='360'/><br/>Missing: ",
+      "Map:<br/><img src='http://rustfs/mission-images/ab/abc.webp' width='360'/><br/>Missing: ",
     );
   });
 });

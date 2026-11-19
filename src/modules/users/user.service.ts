@@ -8,8 +8,8 @@ import { InjectModel } from '@nestjs/mongoose';
 
 import { User } from './user.schema';
 import { Plan } from '../plans/plan.schema';
-import { MinioService } from '../minio/minio.service';
-import { APMO_BUCKET } from '../minio/minio.lib';
+import { StorageService } from '../storage/storage.service';
+import { APMO_BUCKET } from '../storage/storage.lib';
 import type { GetProfilePlansDto, PlanSortField } from './user.dto';
 import { escapeRegex } from 'src/shared/utils/validation';
 import { readUsername, USERNAME_TAKEN } from './username';
@@ -50,7 +50,7 @@ export class UserService {
   constructor(
     @InjectModel(User.name) private userModel: Model<User>,
     @InjectModel(Plan.name) private planModel: Model<Plan>,
-    private readonly minio: MinioService,
+    private readonly storage: StorageService,
   ) {}
 
   /** `GET /users/search?q=` — by username, for squad members and plan access. */
@@ -238,7 +238,7 @@ export class UserService {
 
   /** `file` is validated by `FileValidation` (size + image signature). */
   async uploadAvatar(userId: string, file: Express.Multer.File) {
-    const url = await this.minio.uploadImage(APMO_BUCKET.AVATARS, file.buffer, {
+    const url = await this.storage.uploadImage(APMO_BUCKET.AVATARS, file.buffer, {
       prefix: userId,
       maxSize: 512,
     });
@@ -246,7 +246,7 @@ export class UserService {
     try {
       return await this.replaceAvatar(userId, url);
     } catch (error) {
-      await this.minio.removeByUrl(url);
+      await this.storage.removeByUrl(url);
       throw error;
     }
   }
@@ -269,8 +269,8 @@ export class UserService {
       .select(PROFILE_PROJECTION);
 
     if (previous.avatar && previous.avatar !== avatar) {
-      // Only deletes files uploaded to our MinIO, external URLs are ignored.
-      await this.minio.removeByUrl(previous.avatar);
+      // Only deletes files uploaded to our storage, external URLs are ignored.
+      await this.storage.removeByUrl(previous.avatar);
     }
 
     return updated;
