@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 
 import { AppModule } from './app.module';
+import { corsOrigin } from './modules/auth/auth.cookies';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -11,8 +12,11 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
   app.useBodyParser('json', { limit: '50mb' });
   app.useBodyParser('urlencoded', { limit: '50mb', extended: true });
+  // The session lives in httpOnly cookies: only the web app (FRONTEND_URL) may
+  // send them cross-origin. Same-origin requests are not affected.
   app.enableCors({
-    origin: '*',
+    origin: corsOrigin,
+    credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     preflightContinue: false,
     optionsSuccessStatus: 204,

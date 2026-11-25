@@ -8,19 +8,19 @@ import {
   Injectable,
   Logger,
   ServiceUnavailableException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ForgotPasswordDto, SignInDto, SignUpDto } from './auth.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { User } from '../users/user.schema';
-import { Model } from 'mongoose';
+import { Model, isValidObjectId } from 'mongoose';
 import { MailService } from '../mail/mail.service';
+import { ACCESS_TTL_SECONDS, REFRESH_TTL_SECONDS } from './auth.cookies';
 import {
   resolveMailLanguage,
   temporaryPasswordEmail,
   welcomeEmail,
 } from '../mail/templates';
-
-const TOKEN_TTL_SECONDS = 40 * 60 * 60;
 
 /** bcrypt never throws on a user without a password (external sign-in only). */
 const matches = (password: unknown, hash?: string | null) =>
@@ -177,30 +177,40 @@ export class AuthService {
     return;
   }
 
+  /** New pair for a valid refresh token, unless the user is gone. */
   async refreshToken(userId: string) {
+    const exists = isValidObjectId(userId) && (await this.userModel.exists({ _id: userId }));
+
+    if (!exists) {
+      throw new UnauthorizedException();
+    }
+
     return this.issueTokens(userId);
   }
 
-  /** Access + refresh token pair, the same for every way of signing in. */
+  /**
+   * Access + refresh token pair, the same for every way of signing in.
+   * The controller puts them into httpOnly cookies; they never go to the body.
+   */
   issueTokens(userId: string) {
-    const token = this.jwtService.sign({
-      userId,
-    });
-
-    const refreshToken = this.jwtService.sign(
-      {
-        userId,
-      },
-      {
-        expiresIn: '7d',
-      },
+    const token = this.jwtService.sign(
+      { userId, typ: 'access' },
+      { expiresIn: ACCESS_TTL_SECONDS },
     );
 
+    const refreshToken = this.jwtService.sign(
+      { userId, typ: 'refresh' },
+      { expiresIn: REFRESH_TTL_SECONDS },
+    );
+
+    return { token, refreshToken };
+  }
+
+  /** What the web app may know about the session (no secrets). */
+  sessionInfo() {
     return {
-      token,
-      refreshToken,
-      expiresIn: TOKEN_TTL_SECONDS,
-      expirationDate: new Date(Date.now() + TOKEN_TTL_SECONDS * 1000),
+      expiresIn: ACCESS_TTL_SECONDS,
+      expirationDate: new Date(Date.now() + ACCESS_TTL_SECONDS * 1000),
     };
   }
 }

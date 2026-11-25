@@ -13,6 +13,7 @@ import {
 import type { Request, Response } from 'express';
 
 import { AuthGuard } from '../auth.guard';
+import { setAuthCookies } from '../auth.cookies';
 import { getEnabledProviders, isAuthProvider } from './oauth.config';
 import { OAuthService } from './oauth.service';
 import {
@@ -38,7 +39,8 @@ const readProvider = (value: string) => {
  * - `GET  /auth/oauth/providers`          — enabled providers
  * - `GET  /auth/oauth/:provider`          — browser redirect to the provider
  * - `GET  /auth/oauth/:provider/callback` — back from it, then to the web app
- *   (`/auth/callback#token=…` or `#error=…`)
+ *   (`/auth/callback#signedIn=1`, `#linked=…` or `#error=…`); a sign-in sets
+ *   the session cookies on this redirect
  * - `POST /auth/oauth/:provider/link`     — `{ url }` to link it to the user
  * - `DELETE /auth/oauth/:provider`        — unlink
  */
@@ -91,11 +93,14 @@ export class OAuthController {
     res.setHeader('Referrer-Policy', 'no-referrer');
 
     try {
-      const url = await this.oauthService.finish(
+      const { url, tokens } = await this.oauthService.finish(
         readProvider(provider),
         query,
         cookie,
       );
+
+      // res.cookie appends to the Set-Cookie header set above (state cookie).
+      if (tokens) setAuthCookies(res, tokens);
 
       res.redirect(302, url);
     } catch (error) {

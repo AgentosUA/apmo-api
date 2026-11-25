@@ -121,7 +121,10 @@ export class OAuthService {
     return { url, cookie };
   }
 
-  /** Handles the provider callback; returns the web app URL to redirect to. */
+  /**
+   * Handles the provider callback. Returns the web app URL to redirect to and,
+   * after a sign-in, the token pair the controller puts into cookies.
+   */
   async finish(
     provider: AuthProvider,
     query: URLSearchParams,
@@ -153,18 +156,19 @@ export class OAuthService {
     if (statePayload.userId) {
       await this.link(statePayload.userId, identity, statePayload.lang);
 
-      return this.callbackUrl({ linked: provider });
+      return { url: this.callbackUrl({ linked: provider }) };
     }
 
     const { userId, isNew } = await this.login(identity, statePayload.lang);
-    const tokens = this.authService.issueTokens(userId);
 
-    return this.callbackUrl({
-      token: tokens.token,
-      refreshToken: tokens.refreshToken,
-      provider,
-      ...(isNew ? { new: '1' } : {}),
-    });
+    return {
+      url: this.callbackUrl({
+        signedIn: '1',
+        provider,
+        ...(isNew ? { new: '1' } : {}),
+      }),
+      tokens: this.authService.issueTokens(userId),
+    };
   }
 
   /** The web app's callback page; data goes in the fragment, which never reaches servers. */

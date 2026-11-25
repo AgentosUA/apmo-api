@@ -6,6 +6,13 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 
+import { readAccessCookie, readRefreshCookie } from './auth.cookies';
+
+/** `typ` claim. Tokens issued before it existed have none and are accepted by both checks. */
+type TokenType = 'access' | 'refresh';
+
+type TokenPayload = { userId: string; typ?: TokenType };
+
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(private jwtService: JwtService) {}
@@ -13,7 +20,7 @@ export class AuthGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
 
-    const token = this.extractTokenFromHeader(request);
+    const token = this.extractToken(request);
 
     if (!token) {
       throw new UnauthorizedException();
@@ -32,17 +39,46 @@ export class AuthGuard implements CanActivate {
     return true;
   }
 
+  /** Access token; a refresh token is rejected. */
   public async verifyAndGetUser(token = '') {
-    const user = await this.jwtService.verifyAsync(token, {
-      secret: process.env.JWT_SECRET,
-    });
+    return this.verify(token, 'access');
+  }
 
-    return user;
+  /** Refresh token; an access token is rejected. */
+  public async verifyRefreshToken(token = '') {
+    return this.verify(token, 'refresh');
+  }
+
+  /** The httpOnly cookie, or `Authorization: Bearer` (scripts, old clients). */
+  public extractToken(request: any): string | undefined {
+    return (
+      readAccessCookie(request?.headers?.cookie) ||
+      this.extractTokenFromHeader(request)
+    );
+  }
+
+  public extractRefreshToken(request: any): string | undefined {
+    return (
+      readRefreshCookie(request?.headers?.cookie) ||
+      this.extractTokenFromHeader(request)
+    );
   }
 
   public extractTokenFromHeader(request: any): string | undefined {
     const [type, token] = request?.headers?.authorization?.split(' ') ?? [];
 
     return type === 'Bearer' ? token : undefined;
+  }
+
+  private async verify(token: string, expected: TokenType) {
+    const payload = await this.jwtService.verifyAsync<TokenPayload>(token, {
+      secret: process.env.JWT_SECRET,
+    });
+
+    if (payload.typ && payload.typ !== expected) {
+      throw new UnauthorizedException();
+    }
+
+    return payload;
   }
 }

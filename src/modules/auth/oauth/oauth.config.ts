@@ -5,10 +5,18 @@ const trimUrl = (value?: string) => (value ?? '').trim().replace(/\/+$/, '');
 /** Public URL of the API without the `/api` prefix, e.g. https://arma-plan-maker.com */
 const getApiPublicUrl = () => trimUrl(process.env.API_PUBLIC_URL);
 
+/** All origins of FRONTEND_URL (comma separated) — allowed by CORS. */
+const getFrontendUrls = () => {
+  const urls = (process.env.FRONTEND_URL ?? '')
+    .split(',')
+    .map(trimUrl)
+    .filter(Boolean);
+
+  return urls.length ? urls : ['http://localhost:3001'];
+};
+
 /** First origin of FRONTEND_URL — where users are sent back after signing in. */
-const getFrontendUrl = () =>
-  (process.env.FRONTEND_URL ?? '').split(',').map(trimUrl).find(Boolean) ||
-  'http://localhost:3001';
+const getFrontendUrl = () => getFrontendUrls()[0];
 
 const getCallbackUrl = (provider: AuthProvider) =>
   `${getApiPublicUrl()}/api/auth/oauth/${provider}/callback`;
@@ -77,6 +85,7 @@ export {
   getCallbackUrl,
   getEnabledProviders,
   getFrontendUrl,
+  getFrontendUrls,
   getOidcConfig,
   getSteamConfig,
   isAuthProvider,

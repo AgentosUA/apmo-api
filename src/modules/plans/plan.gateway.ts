@@ -15,6 +15,7 @@ import {
 import type { Namespace, Socket } from 'socket.io';
 
 import { AuthGuard } from '../auth/auth.guard';
+import { corsOrigin, readAccessCookie } from '../auth/auth.cookies';
 import { User } from '../users/user.schema';
 import { PlanAccessService } from './plan-access.service';
 import { PlanRoomsService, type PlanMarker } from './plan-rooms.service';
@@ -66,13 +67,15 @@ const fallbackGuestName = () =>
  * - `plan:permissions` `PlanPermissions`
  * - `plan:access-revoked`, `plan:deleted`
  *
- * Auth: `auth.token` (JWT, optional) and `auth.guestName` in the handshake.
+ * Auth: the `apmo_access` session cookie (or `auth.token` for old clients,
+ * optional) and `auth.guestName` in the handshake.
  */
 @WebSocketGateway({
   namespace: '/plans',
   // Under the REST prefix, so one reverse-proxy rule (`/api`) serves both.
   path: '/api/socket.io',
-  cors: { origin: '*' },
+  // Cookies travel with the handshake, so only the web app origins.
+  cors: { origin: corsOrigin, credentials: true },
   maxHttpBufferSize: 5 * 1024 * 1024,
 })
 export class PlanGateway
@@ -235,7 +238,9 @@ export class PlanGateway
 
   private async identify(client: PlanSocket) {
     const auth = (client.handshake.auth ?? {}) as Record<string, unknown>;
-    const token = typeof auth.token === 'string' ? auth.token : '';
+    const token =
+      readAccessCookie(client.handshake.headers.cookie) ||
+      (typeof auth.token === 'string' ? auth.token : '');
 
     let userId: string | null = null;
 

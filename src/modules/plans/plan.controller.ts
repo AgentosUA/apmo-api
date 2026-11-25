@@ -67,7 +67,7 @@ export class PlanController {
 
   /** Anonymous requests are allowed; an invalid token counts as anonymous. */
   private async getOptionalUserId(req): Promise<string | undefined> {
-    const token = this.authGuard.extractTokenFromHeader(req);
+    const token = this.authGuard.extractToken(req);
 
     if (!token) return undefined;
 

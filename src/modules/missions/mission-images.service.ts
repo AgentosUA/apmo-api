@@ -3,7 +3,7 @@ import { readFile } from 'fs/promises';
 
 import { Injectable, Logger } from '@nestjs/common';
 // No esModuleInterop in tsconfig: a default import of the CJS `sharp` would be undefined.
-import * as sharp from 'sharp';
+import sharp from 'sharp';
 
 import { StorageService } from '../storage/storage.service';
 import { APMO_BUCKET } from '../storage/storage.lib';

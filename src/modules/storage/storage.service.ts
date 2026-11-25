@@ -12,7 +12,7 @@ import {
 } from '@aws-sdk/client-s3';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 // No esModuleInterop in tsconfig: a default import of the CJS `sharp` would be undefined.
-import * as sharp from 'sharp';
+import sharp from 'sharp';
 
 import { APMO_BUCKET } from './storage.lib';
 import { detectImageType } from 'src/shared/utils/file-signature';
