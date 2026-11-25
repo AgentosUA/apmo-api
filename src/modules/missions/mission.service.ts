@@ -112,8 +112,9 @@ export class MissionService {
             year: intel.year,
             month: intel.month,
             day: intel.day,
-            hour: intel.hour,
-            minute: intel.minute,
+            // mission.sqm omits zero values.
+            hour: intel.hour ?? 0,
+            minute: intel.minute ?? 0,
             // fog?
           },
         },

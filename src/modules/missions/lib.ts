@@ -15,9 +15,10 @@ const getUnitFromGroupEntity = (entities: Entities) => {
     units.push({
       id: entities[key].id,
       side: entities[key].side,
-      rank: entities[key].Attributes.rank,
+      // mission.sqm omits default values: rank PRIVATE, empty description, zero rotation.
+      rank: entities[key].Attributes.rank ?? 'PRIVATE',
       type: entities[key].type,
-      description: entities[key].Attributes.description,
+      description: entities[key].Attributes.description ?? '',
       isPlayable: Boolean(entities[key].Attributes.isPlayable),
       inventory: entities[key].Attributes.Inventory ?? null,
       position: {
@@ -26,7 +27,7 @@ const getUnitFromGroupEntity = (entities: Entities) => {
           z: entities[key].PositionInfo.position[1],
           y: entities[key].PositionInfo.position[2],
         },
-        angles: entities[key].PositionInfo.angles,
+        angles: entities[key].PositionInfo.angles ?? [0, 0, 0],
       },
     });
   });
@@ -104,7 +105,7 @@ const getVehicles = (entities: Entities) => {
             z: entities?.[key]?.PositionInfo?.position?.[1] ?? 0,
             y: entities?.[key]?.PositionInfo?.position?.[2] ?? 0,
           },
-          angle: entities?.[key]?.PositionInfo?.angles?.[1] ?? 0,
+          angles: entities?.[key]?.PositionInfo?.angles ?? [0, 0, 0],
         },
       });
     }
@@ -128,8 +129,9 @@ const getMarkersFromEntity = (entities: Entities) => {
           type: entities[key]?.type,
           colorName: entities[key]?.colorName,
           fillName: entities[key]?.fillName,
-          width: entities[key]?.a,
-          height: entities[key]?.b,
+          // Omitted in mission.sqm when 1.
+          width: entities[key]?.a ?? 1,
+          height: entities[key]?.b ?? 1,
           position: {
             angle: entities[key]?.angle ?? 0,
             coordinates: {
