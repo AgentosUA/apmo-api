@@ -1,5 +1,3 @@
-import { execSync } from 'child_process';
-
 import {
   BadRequestException,
   HttpException,
@@ -7,7 +5,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 
-import * as fs from 'fs';
+import { readFile, rm } from 'fs/promises';
 
 import { Entities } from 'src/shared/types/sqm';
 import {
@@ -23,6 +21,10 @@ import {
   generateRandomString,
   removeExtraSlashes,
 } from 'src/shared/utils/string';
+import { resolveMissionFile } from 'src/shared/utils/file';
+import { PboArchive, parseConfigFile } from 'src/shared/utils/pbo';
+
+const MISSIONS_DIR = 'public/missions';
 
 @Injectable()
 export class MissionService {
@@ -39,36 +41,43 @@ export class MissionService {
     try {
       if (!island) throw new BadRequestException();
 
+      const missionPath = `${MISSIONS_DIR}/${fileId}`;
+
       if (!isTesting) {
-        fs.writeFileSync(`public/missions/${fileId}.pbo`, file.buffer);
+        // Unpacked in-process (no native tools): works on any CPU architecture.
+        const pbo = PboArchive.fromBuffer(file.buffer);
 
-        execSync(`cd public/missions && extractpbo ${fileId}.pbo`);
-
-        if (!fs.existsSync(`public/missions/${fileId}/mission.sqm`)) {
+        if (!pbo.has('mission.sqm')) {
           throw new HttpException(
             'Failed to upload mission',
             HttpStatus.INTERNAL_SERVER_ERROR,
           );
         }
 
-        execSync(
-          `cp public/parse2json public/missions/${fileId} && cd public/missions/${fileId} && ./parse2json mission.sqm mission.json`,
+        await pbo.extractTo(missionPath);
+      }
+
+      // Arma paths are case-insensitive (`Mission.sqm`, `Briefing.sqf`…).
+      const sqmPath = resolveMissionFile(missionPath, 'mission.sqm');
+      const briefingPath = resolveMissionFile(missionPath, 'briefing.sqf');
+
+      if (!sqmPath) {
+        throw new HttpException(
+          'Failed to upload mission',
+          HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
 
-      const missionPath = `public/missions/${fileId}`;
-      const missionJSONPath = `public/missions/${fileId}/mission.json`;
-      const briefingPath = `public/missions/${fileId}/briefing.sqf`;
-
-      const data = JSON.parse(fs.readFileSync(missionJSONPath, 'utf-8'));
+      // mission.sqm can be text or binarized (raP): both are parsed to JSON.
+      const data = parseConfigFile(await readFile(sqmPath)) as any;
 
       const intel = data.Mission.Intel;
       const entities = data.Mission.Entities as Entities;
       const overviewPicture = data.ScenarioData?.overViewPicture
         ? removeExtraSlashes(data.ScenarioData.overViewPicture)
         : '';
-      const briefing = fs.existsSync(briefingPath)
-        ? normalizeBriefing(fs.readFileSync(briefingPath, 'utf-8'))
+      const briefing = briefingPath
+        ? normalizeBriefing(await readFile(briefingPath, 'utf-8'))
         : '';
 
       // .paa / .jpg / .png → webp in RustFS (S3); the UI receives URLs.
@@ -128,11 +137,10 @@ export class MissionService {
       if (!isTesting) {
         setTimeout(() => {
           // `force`: the files may not exist when the import failed early.
-          fs.rmSync(`public/missions/${fileId}.pbo`, { force: true });
-          fs.rmSync(`public/missions/${fileId}`, {
+          rm(`${MISSIONS_DIR}/${fileId}`, {
             recursive: true,
             force: true,
-          });
+          }).catch((error) => console.log(error));
         }, 10000);
       }
     }
