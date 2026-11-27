@@ -69,6 +69,8 @@ type EntityItem = {
   b?: number;
   position?: number[];
   markerType?: string;
+  name?: string;
+  text?: string;
   atlOffset?: 0.00072097778;
   CustomAttributes?: {
     Attribute0: {

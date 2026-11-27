@@ -138,10 +138,19 @@ const getMarkersFromEntity = (entities: Entities) => {
   entitiesKeys.forEach((key, index) => {
     if (!index) return;
 
+    // Eden layers hold markers too.
+    if (entities[key].dataType !== 'Marker' && entities[key].Entities) {
+      markers.push(...getMarkersFromEntity(entities[key].Entities));
+      return;
+    }
+
     switch (entities[key].dataType) {
       case 'Marker':
         markers.push({
           id: entities[key]?.id,
+          // Variable name: briefing links point to it (`<marker name='…'>`).
+          name: entities[key]?.name,
+          text: entities[key]?.text,
           markerType: entities[key]?.markerType,
           type: entities[key]?.type,
           colorName: entities[key]?.colorName,
