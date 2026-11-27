@@ -160,6 +160,12 @@ export class PlanRoomsService implements OnApplicationShutdown {
     markers: PlanMarker[];
   }>();
 
+  /** The plan was renamed through REST: push the title to the room. */
+  readonly planPatched$ = new Subject<{
+    planId: string;
+    patch: { title: string };
+  }>();
+
   /** The plan was deleted: close the room. */
   readonly planDeleted$ = new Subject<string>();
 
@@ -258,6 +264,20 @@ export class PlanRoomsService implements OnApplicationShutdown {
   }
 
   /** REST update of an open plan: the room takes the new markers. */
+  async replaceTitle(planId: string, title: string) {
+    const room = this.rooms.get(planId);
+
+    if (!room) return;
+
+    const state = await room;
+
+    // Already written by the REST handler: an older title from the room
+    // must not overwrite it on the next persist.
+    delete state.pending.title;
+
+    this.planPatched$.next({ planId, patch: { title } });
+  }
+
   async replaceMarkers(planId: string, planMarkers: string) {
     const room = this.rooms.get(planId);
 

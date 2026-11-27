@@ -102,6 +102,10 @@ export class PlanGateway
       this.broadcastMarkers(planId, markers);
     });
 
+    this.rooms.planPatched$.subscribe(({ planId, patch }) => {
+      this.server.to(roomOf(planId)).emit('plan:patched', { patch, by: null });
+    });
+
     this.rooms.planDeleted$.subscribe((planId) => {
       void this.closeRoom(planId);
     });
@@ -215,13 +219,10 @@ export class PlanGateway
     if (!planId) return { ok: false, error: 'not_joined' };
 
     const permissions = client.data.permissions;
-    const patch = body?.patch as { title?: unknown } | undefined;
+    const patch = body?.patch;
 
-    // Renaming is the owner's call, other changes need edit access.
-    if (
-      !permissions?.canEdit ||
-      (patch?.title !== undefined && !permissions.isOwner)
-    ) {
+    // Renaming needs the same edit access as any other change.
+    if (!permissions?.canEdit) {
       return { ok: false, error: 'forbidden' };
     }
 

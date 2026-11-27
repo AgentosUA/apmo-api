@@ -90,6 +90,10 @@ export class PlanService {
       await this.rooms.replaceMarkers(id, dto.planMarkers);
     }
 
+    if (dto.title !== undefined) {
+      await this.rooms.replaceTitle(id, dto.title);
+    }
+
     return this.serialize(plan, userId, permissions);
   }
 

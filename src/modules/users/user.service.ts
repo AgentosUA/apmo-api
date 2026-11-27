@@ -122,11 +122,8 @@ export class UserService {
 
     if (query.search) {
       const regex = { $regex: escapeRegex(query.search), $options: 'i' };
-      filter.$or = [
-        { 'mission.missionName': regex },
-        // Plans without an uploaded mission only have a title.
-        { mission: null, title: regex },
-      ];
+      // Plan name (can be renamed) or the name of its mission.
+      filter.$or = [{ title: regex }, { 'mission.missionName': regex }];
     }
 
     if (query.world) {
