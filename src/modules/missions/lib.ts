@@ -1,4 +1,5 @@
 import { Entities } from 'src/shared/types/sqm';
+import { assignCallsigns } from './callsigns';
 import {
   extractImagePaths,
   generateRandomString,
@@ -35,9 +36,15 @@ const getUnitFromGroupEntity = (entities: Entities) => {
   return units;
 };
 
-const getGroupsFromEntity = (entities: Entities) => {
+type MissionGroup = {
+  id: number;
+  side: Entities[0]['side'];
+  units: ReturnType<typeof getUnitFromGroupEntity>;
+};
+
+const collectGroups = (entities: Entities): MissionGroup[] => {
   const entitiesKeys = Object.keys(entities);
-  const groups = [];
+  const groups: MissionGroup[] = [];
 
   entitiesKeys.forEach((key, index) => {
     if (!index || !entities[key].dataType) return;
@@ -48,11 +55,21 @@ const getGroupsFromEntity = (entities: Entities) => {
         side: entities[key].side,
         units: getUnitFromGroupEntity(entities[key].Entities),
       });
+      return;
+    }
+
+    // Eden layers (and other containers) can hold groups too.
+    if (entities[key].Entities) {
+      groups.push(...collectGroups(entities[key].Entities));
     }
   });
 
   return groups;
 };
+
+/** Groups with lobby callsigns (`@Alpha X-Y` overrides respected). */
+const getGroupsFromEntity = (entities: Entities) =>
+  assignCallsigns(collectGroups(entities));
 
 const getVehicleType = (entity: Entities[0]) => {
   if (entity?.Attributes?.pylons) return 'air';
