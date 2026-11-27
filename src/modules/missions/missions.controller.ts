@@ -1,6 +1,8 @@
 import {
   BadRequestException,
+  Body,
   Controller,
+  HttpCode,
   Post,
   Query,
   UploadedFile,
@@ -28,5 +30,15 @@ export class MissionController {
     }
 
     return this.missionService.parseMission(file, Boolean(isTesting));
+  }
+
+  /**
+   * Opens a mission by link (`https://arma-plan-maker.com?file=<url>`): the
+   * .pbo is downloaded by the API, only from MISSION_URL_ALLOWLIST.
+   */
+  @Post('/parse-url')
+  @HttpCode(200)
+  parseUrl(@Body('url') url: unknown) {
+    return this.missionService.parseMissionFromUrl(url);
   }
 }

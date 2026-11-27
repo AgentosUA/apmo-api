@@ -1,8 +1,11 @@
 import {
+  BadGatewayException,
   BadRequestException,
+  ForbiddenException,
   HttpException,
   HttpStatus,
   Injectable,
+  PayloadTooLargeException,
 } from '@nestjs/common';
 
 import { readFile, rm } from 'fs/promises';
@@ -23,14 +26,21 @@ import {
 } from 'src/shared/utils/string';
 import { resolveMissionFile } from 'src/shared/utils/file';
 import { PboArchive, parseConfigFile } from 'src/shared/utils/pbo';
+import {
+  getRemoteMissionConfig,
+  resolveRemoteMissionUrl,
+} from './remote-mission';
 
 const MISSIONS_DIR = 'public/missions';
+
+/** What the parser needs from an upload (multer file or a downloaded .pbo). */
+type MissionFile = Pick<Express.Multer.File, 'originalname' | 'buffer'>;
 
 @Injectable()
 export class MissionService {
   constructor(private readonly missionImages: MissionImagesService) {}
 
-  async parseMission(file: Express.Multer.File, isTesting = false) {
+  async parseMission(file: MissionFile, isTesting = false) {
     const fileId = isTesting ? 'playground' : generateRandomString();
     // Island comes from the file name (`name.Island.pbo`): checked first, so a
     // bad name fails before any work (and image uploads) is done.
@@ -145,5 +155,88 @@ export class MissionService {
         }, 10000);
       }
     }
+  }
+
+  /** Downloads a .pbo from an allow-listed URL and parses it like an upload. */
+  async parseMissionFromUrl(value: unknown) {
+    const config = getRemoteMissionConfig();
+    const resolved = resolveRemoteMissionUrl(value, config.allowlist);
+
+    // `in` narrows without strictNullChecks.
+    if ('reason' in resolved) {
+      if (resolved.reason === 'not-allowed') {
+        throw new ForbiddenException('Mission URL is not allowed');
+      }
+
+      throw new BadRequestException(
+        resolved.reason === 'not-pbo'
+          ? 'Only .pbo files are allowed'
+          : 'Invalid mission URL',
+      );
+    }
+
+    const buffer = await this.downloadMission(resolved.url, config);
+
+    return this.parseMission({ originalname: resolved.fileName, buffer });
+  }
+
+  private async downloadMission(
+    url: URL,
+    { maxSize, timeout }: { maxSize: number; timeout: number },
+  ) {
+    let response: Response;
+
+    try {
+      // No redirects: a redirect could lead outside the allow-list.
+      response = await fetch(url, {
+        redirect: 'manual',
+        signal: AbortSignal.timeout(timeout),
+      });
+    } catch (error) {
+      console.log(error);
+
+      throw new BadGatewayException('Failed to download mission');
+    }
+
+    if (!response.ok || !response.body) {
+      await response.body?.cancel().catch(() => undefined);
+
+      throw new BadGatewayException(
+        `Failed to download mission (HTTP ${response.status})`,
+      );
+    }
+
+    const tooLarge = () =>
+      new PayloadTooLargeException(
+        `Mission file is larger than ${Math.round(maxSize / 1024 / 1024)} MB`,
+      );
+
+    if (Number(response.headers.get('content-length')) > maxSize) {
+      await response.body.cancel().catch(() => undefined);
+
+      throw tooLarge();
+    }
+
+    // Content-Length may be missing or wrong: count the bytes while reading.
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+
+    try {
+      for await (const chunk of response.body) {
+        size += chunk.byteLength;
+
+        if (size > maxSize) throw tooLarge();
+
+        chunks.push(chunk);
+      }
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+
+      console.log(error);
+
+      throw new BadGatewayException('Failed to download mission');
+    }
+
+    return Buffer.concat(chunks);
   }
 }
